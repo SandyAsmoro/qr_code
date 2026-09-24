@@ -1,31 +1,28 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import Link from 'next/link'
+import RegistrationForm from './components/RegistrationForm'
 
 export default function Home() {
-  const [status, setStatus] = useState('Loading...')
-
-  useEffect(() => {
-    const testConnection = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('any_table')
-          .select('count', { count: 'exact', head: true })
-        
-        if (error) throw error
-        setStatus('✅ Koneksi Supabase berhasil!')
-      } catch (error) {
-        setStatus(`❌ Error: ${error}`)
-      }
-    }
-
-    testConnection()
-  }, [])
-
   return (
-    <main className="flex items-center justify-center min-h-screen">
-      <h1 className="text-2xl font-bold">{status}</h1>
+    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 py-8">
+      <div className="container mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-blue-600 mb-2">
+            📱 Sistem Registrasi & Presensi
+          </h1>
+          <p className="text-gray-600">Dengan QR Code Scanner</p>
+        </div>
+
+        <RegistrationForm />
+        
+        <div className="text-center mt-8 space-y-2">
+          <Link href="/scan-card" className="text-blue-600 hover:underline block text-lg">
+            → Scan Peserta (Panitia)
+          </Link>
+          <Link href="/scan-attendance" className="text-blue-600 hover:underline block text-lg">
+            → Scan Presensi (Admin)
+          </Link>
+        </div>
+      </div>
     </main>
   )
 }
