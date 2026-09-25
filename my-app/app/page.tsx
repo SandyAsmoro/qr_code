@@ -13,13 +13,16 @@ export default function Home() {
         </div>
 
         <RegistrationForm />
-        
+
         <div className="text-center mt-8 space-y-2">
           <Link href="/scan-card" className="text-blue-600 hover:underline block text-lg">
             → Scan Peserta (Panitia)
           </Link>
           <Link href="/scan-attendance" className="text-blue-600 hover:underline block text-lg">
             → Scan Presensi (Admin)
+          </Link>
+          <Link href="/admin" className="text-gray-500 hover:underline block text-sm mt-4">
+            → Admin Dashboard
           </Link>
         </div>
       </div>
