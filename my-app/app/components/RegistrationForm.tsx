@@ -2,11 +2,17 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { Camera, X, CheckCircle2, Download, RotateCcw, Mail, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { generateQRCode, downloadQRCode } from '@/lib/qrcode'
 import { generateQRCodeData } from '@/lib/encryption'
+import Card from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+import Input from '@/components/ui/Input'
+import Select from '@/components/ui/Select'
+import Textarea from '@/components/ui/Textarea'
 
-type FormData = {
+type FormDataType = {
   nama_lengkap: string
   email: string
   umur: number | ''
@@ -25,60 +31,111 @@ type FormData = {
   pekerjaan: string
 }
 
-type UploadStatus = {
-  loading: boolean
-  progress: number
-  message: string
-  originalSize?: number
-  optimizedSize?: number
-  compressionRatio?: number
-}
-
 const PENDIDIKAN_OPTIONS = ['SD', 'SMP', 'SMA', 'D1', 'D2', 'D3', 'S1', 'S2', 'S3']
-const STATUS_OPTIONS = ['Belum Menikah', 'Menikah', 'Cerai']
+const STATUS_OPTIONS = ['Belum Menikah', 'Duda', 'Janda']
 const JENIS_KELAMIN_OPTIONS = ['Laki-laki', 'Perempuan']
+
+const initialFormData: FormDataType = {
+  nama_lengkap: '',
+  email: '',
+  umur: '',
+  jenis_kelamin: '',
+  daerah: '',
+  desa: '',
+  tinggi_badan: '',
+  berat_badan: '',
+  jumlah_saudara: '',
+  anak_ke: '',
+  kelompok: '',
+  hobi: '',
+  dapukan: '',
+  status: '',
+  pendidikan_terakhir: '',
+  pekerjaan: '',
+}
 
 export default function RegistrationForm() {
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>({
-    loading: false,
-    progress: 0,
-    message: '',
-  })
+  const [uploadStatus, setUploadStatus] = useState<{
+    loading: boolean
+    message: string
+  }>({ loading: false, message: '' })
 
-  const [formData, setFormData] = useState<FormData>({
-    nama_lengkap: '',
-    email: '',
-    umur: '',
-    jenis_kelamin: '',
-    daerah: '',
-    desa: '',
-    tinggi_badan: '',
-    berat_badan: '',
-    jumlah_saudara: '',
-    anak_ke: '',
-    kelompok: '',
-    hobi: '',
-    dapukan: '',
-    status: '',
-    pendidikan_terakhir: '',
-    pekerjaan: '',
-  })
-
+  const [formData, setFormData] = useState<FormDataType>(initialFormData)
   const [qrCode, setQrCode] = useState<string | null>(null)
-  const [participantId, setParticipantId] = useState<string | null>(null)
   const [submittedData, setSubmittedData] = useState<any>(null)
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
 
-  const sendEmailNotification = async (
-    email: string,
-    nama: string,
-    qrCodeDataUrl: string
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
+    const { name, value } = e.target
+    setFieldErrors((prev) => ({ ...prev, [name]: '' }))
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        value === ''
+          ? ''
+          : ['umur', 'tinggi_badan', 'berat_badan', 'jumlah_saudara', 'anak_ke'].includes(name)
+          ? Number(value)
+          : value,
+    }))
+  }
+
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      setFieldErrors((p) => ({ ...p, foto: 'Ukuran foto maksimal 10MB' }))
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      setFieldErrors((p) => ({ ...p, foto: 'File harus berupa gambar' }))
+      return
+    }
+
+    setFieldErrors((p) => ({ ...p, foto: '' }))
+    setFotoFile(file)
+    const reader = new FileReader()
+    reader.onload = (e) => setFotoPreview(e.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const removeFoto = () => {
+    setFotoFile(null)
+    setFotoPreview(null)
+  }
+
+  const uploadFoto = async (file: File): Promise<string | null> => {
+    try {
+      setUploadStatus({ loading: true, message: 'Mengompresi & mengunggah foto...' })
+
+      const fd = new FormData()
+      fd.append('file', file)
+
+      const response = await fetch('/api/upload', { method: 'POST', body: fd })
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Upload gagal')
+      }
+
+      const data = await response.json()
+      setUploadStatus({ loading: false, message: '' })
+      return data.url
+    } catch (error) {
+      setUploadStatus({ loading: false, message: '' })
+      setFieldErrors((p) => ({ ...p, foto: 'Gagal mengunggah foto, coba lagi' }))
+      return null
+    }
+  }
+
+  const sendEmailNotification = async (email: string, nama: string, qrCodeDataUrl: string) => {
     setEmailStatus('sending')
     try {
       const response = await fetch('/api/send-email', {
@@ -86,135 +143,41 @@ export default function RegistrationForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, nama_lengkap: nama, qrCodeDataUrl }),
       })
-
-      if (!response.ok) throw new Error('Gagal kirim email')
+      if (!response.ok) throw new Error()
       setEmailStatus('sent')
-    } catch (error) {
-      console.error('Error sending email:', error)
+    } catch {
       setEmailStatus('failed')
     }
   }
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value === '' ? '' :
-               ['umur', 'tinggi_badan', 'berat_badan', 'jumlah_saudara', 'anak_ke'].includes(name)
-                 ? value === '' ? '' : Number(value)
-                 : value,
-    }))
-  }
-
-  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert('Ukuran foto tidak boleh lebih dari 10MB')
-        return
-      }
-
-      if (!file.type.startsWith('image/')) {
-        alert('File harus berupa gambar')
-        return
-      }
-
-      setFotoFile(file)
-
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setFotoPreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+  const validate = (): boolean => {
+    const errors: Record<string, string> = {}
+    if (!formData.nama_lengkap.trim()) errors.nama_lengkap = 'Nama lengkap wajib diisi'
+    if (!formData.email.trim()) {
+      errors.email = 'Email wajib diisi'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Format email tidak valid'
     }
-  }
+    if (!formData.umur) errors.umur = 'Umur wajib diisi'
+    if (!formData.jenis_kelamin) errors.jenis_kelamin = 'Jenis kelamin wajib dipilih'
+    if (!fotoFile) errors.foto = 'Foto formal wajib diunggah'
 
-  const uploadFoto = async (file: File): Promise<string | null> => {
-    try {
-      setUploadStatus({
-        loading: true,
-        progress: 0,
-        message: '📤 Menyiapkan foto...',
-      })
-
-      const formData = new FormData()
-      formData.append('file', file)
-
-      setUploadStatus(prev => ({
-        ...prev,
-        progress: 30,
-        message: '🔄 Mengompresi foto...',
-      }))
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Upload failed')
-      }
-
-      const data = await response.json()
-
-      setUploadStatus(prev => ({
-        ...prev,
-        progress: 100,
-        message: '✅ Foto berhasil dioptimasi & diupload!',
-        originalSize: data.originalSize,
-        optimizedSize: data.optimizedSize,
-        compressionRatio: data.compressionRatio,
-      }))
-
-      setTimeout(() => {
-        setUploadStatus({
-          loading: false,
-          progress: 0,
-          message: '',
-        })
-      }, 2000)
-
-      return data.url
-    } catch (error) {
-      console.error('Error uploading foto:', error)
-      setUploadStatus({
-        loading: false,
-        progress: 0,
-        message: `❌ Gagal upload foto: ${error}`,
-      })
-      return null
-    }
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!formData.nama_lengkap || !formData.email || !formData.umur || !formData.jenis_kelamin) {
-      alert('Nama, Email, Umur, dan Jenis Kelamin harus diisi')
-      return
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
-      alert('Format email tidak valid')
-      return
-    }
-
-    if (!fotoFile) {
-      alert('Foto formal harus diunggah')
-      return
-    }
+    if (!validate()) return
 
     setLoading(true)
 
     try {
-      const fotoUrl = await uploadFoto(fotoFile)
-      if (!fotoUrl) throw new Error('Foto gagal diupload')
+      const fotoUrl = await uploadFoto(fotoFile!)
+      if (!fotoUrl) {
+        setLoading(false)
+        return
+      }
 
       const { data, error } = await supabase
         .from('participants')
@@ -245,31 +208,23 @@ export default function RegistrationForm() {
 
       if (error) throw error
 
-      const newParticipantId = data.id
-      setParticipantId(newParticipantId)
-
-      const qrData = generateQRCodeData(newParticipantId)
+      const qrData = generateQRCodeData(data.id)
       const qrImage = await generateQRCode(qrData)
 
       const { error: updateError } = await supabase
         .from('participants')
-        .update({
-          qr_code_data: qrData,
-          qr_code_url: qrImage,
-        })
-        .eq('id', newParticipantId)
+        .update({ qr_code_data: qrData, qr_code_url: qrImage })
+        .eq('id', data.id)
 
       if (updateError) throw updateError
 
       setQrCode(qrImage)
       setSubmittedData(data)
       setSubmitted(true)
-
-      // Kirim email notifikasi (tidak memblokir tampilan sukses)
       sendEmailNotification(formData.email, formData.nama_lengkap, qrImage)
     } catch (error) {
-      console.error('Error:', error)
-      alert('Gagal menyimpan data. Coba lagi.')
+      console.error('Submit error:', error)
+      setFieldErrors((p) => ({ ...p, submit: 'Gagal menyimpan data. Silakan coba lagi.' }))
     } finally {
       setLoading(false)
     }
@@ -278,143 +233,95 @@ export default function RegistrationForm() {
   const handleReset = () => {
     setSubmitted(false)
     setEmailStatus('idle')
-    setFormData({
-      nama_lengkap: '',
-      email: '',
-      umur: '',
-      jenis_kelamin: '',
-      daerah: '',
-      desa: '',
-      tinggi_badan: '',
-      berat_badan: '',
-      jumlah_saudara: '',
-      anak_ke: '',
-      kelompok: '',
-      hobi: '',
-      dapukan: '',
-      status: '',
-      pendidikan_terakhir: '',
-      pekerjaan: '',
-    })
+    setFormData(initialFormData)
     setQrCode(null)
     setFotoFile(null)
     setFotoPreview(null)
-    setParticipantId(null)
+    setSubmittedData(null)
+    setFieldErrors({})
   }
 
-  if (submitted && qrCode && participantId && submittedData) {
+  // ---------- SUCCESS STATE ----------
+  if (submitted && qrCode && submittedData) {
     return (
-      <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
-        <div className="text-center mb-6">
-          <h2 className="text-3xl font-bold text-green-600">✓ Registrasi Berhasil!</h2>
-          <p className="text-gray-600 mt-2">Data Anda telah tersimpan</p>
+      <div className="mx-auto max-w-2xl">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-50">
+            <CheckCircle2 className="h-6 w-6 text-green-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Registrasi Berhasil</h2>
+          <p className="mt-1 text-sm text-gray-600">Data Anda telah tersimpan</p>
         </div>
 
-        <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-lg p-6 mb-6 border-2 border-blue-300">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex justify-center">
+        <Card className="mb-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div className="flex justify-center sm:col-span-1">
               {submittedData.foto_formal_url && (
-                <div className="relative w-40 h-48">
+                <div className="relative aspect-[4/5] w-32 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
                   <Image
                     src={submittedData.foto_formal_url}
-                    alt={submittedData.nama_lengkap}
+                    alt={`Foto formal ${submittedData.nama_lengkap}`}
                     fill
-                    className="object-cover rounded-lg border-2 border-gray-300"
+                    className="object-cover"
                   />
                 </div>
               )}
             </div>
 
-            <div className="md:col-span-2 space-y-2 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Nama</p>
-                  <p className="font-bold text-lg">{submittedData.nama_lengkap}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Umur</p>
-                  <p className="font-bold">{submittedData.umur} tahun</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Jenis Kelamin</p>
-                  <p className="font-semibold">{submittedData.jenis_kelamin}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Daerah</p>
-                  <p className="font-semibold">{submittedData.daerah || '-'}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Desa</p>
-                  <p className="font-semibold">{submittedData.desa || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Kelompok</p>
-                  <p className="font-semibold">{submittedData.kelompok || '-'}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">TB/BB</p>
-                  <p className="font-semibold">
-                    {submittedData.tinggi_badan || '-'} cm / {submittedData.berat_badan || '-'} kg
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Anak ke</p>
-                  <p className="font-semibold">{submittedData.anak_ke || '-'}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Pendidikan</p>
-                  <p className="font-semibold">{submittedData.pendidikan_terakhir || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-xs uppercase">Status</p>
-                  <p className="font-semibold">{submittedData.status || '-'}</p>
-                </div>
-              </div>
-
+            <div className="space-y-3 text-sm sm:col-span-2">
               <div>
-                <p className="text-gray-600 text-xs uppercase">Hobi</p>
-                <p className="font-semibold">{submittedData.hobi || '-'}</p>
+                <p className="text-xs uppercase text-gray-500">Nama</p>
+                <p className="font-semibold text-gray-900">{submittedData.nama_lengkap}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Umur</p>
+                  <p className="text-gray-700">{submittedData.umur} tahun</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Jenis Kelamin</p>
+                  <p className="text-gray-700">{submittedData.jenis_kelamin}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Desa</p>
+                  <p className="text-gray-700">{submittedData.desa || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Kelompok</p>
+                  <p className="text-gray-700">{submittedData.kelompok || '-'}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="mb-6 p-6 bg-gray-100 rounded-lg flex flex-col items-center">
-          <p className="text-sm text-gray-600 mb-3">Scan untuk melihat data peserta:</p>
-          <img src={qrCode} alt="QR Code" className="w-64 h-64 border-4 border-white" />
-        </div>
+        <Card className="mb-4 flex flex-col items-center">
+          <p className="mb-3 text-sm text-gray-600">QR Code untuk presensi:</p>
+          <div className="overflow-hidden rounded-xl border border-gray-200">
+            <img src={qrCode} alt="QR Code peserta" className="h-56 w-56" />
+          </div>
+        </Card>
 
-        {/* Status Email */}
-        <div className="mb-6 p-4 rounded-lg border text-sm">
+        {/* Email status */}
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-3 text-sm">
+          <Mail className="h-4 w-4 shrink-0 text-gray-400" />
           {emailStatus === 'sending' && (
-            <p className="text-blue-600">📧 Mengirim QR Code ke {submittedData.email}...</p>
+            <span className="text-gray-600">Mengirim QR Code ke {submittedData.email}...</span>
           )}
           {emailStatus === 'sent' && (
-            <p className="text-green-600">
-              ✅ QR Code berhasil dikirim ke <strong>{submittedData.email}</strong>
-            </p>
+            <span className="text-green-700">
+              QR Code terkirim ke <strong>{submittedData.email}</strong>
+            </span>
           )}
           {emailStatus === 'failed' && (
-            <div className="flex items-center justify-between">
-              <p className="text-red-600">❌ Gagal mengirim email</p>
+            <div className="flex flex-1 items-center justify-between">
+              <span className="text-red-600">Gagal mengirim email</span>
               <button
                 type="button"
                 onClick={() =>
                   sendEmailNotification(submittedData.email, submittedData.nama_lengkap, qrCode)
                 }
-                className="text-blue-600 hover:underline font-semibold"
+                className="text-xs font-semibold text-purple-600 hover:underline"
               >
                 Coba Lagi
               </button>
@@ -422,375 +329,304 @@ export default function RegistrationForm() {
           )}
         </div>
 
-        <div className="space-y-3">
-          <button
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            variant="primary"
+            className="flex-1"
+            icon={<Download className="h-4 w-4" />}
             onClick={() => downloadQRCode(qrCode, `qr-${submittedData.nama_lengkap}`)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition"
           >
-            📥 Download QR Code
-          </button>
-
-          <button
+            Download QR Code
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            icon={<RotateCcw className="h-4 w-4" />}
             onClick={handleReset}
-            className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-lg transition"
           >
             Daftar Peserta Baru
-          </button>
+          </Button>
         </div>
       </div>
     )
   }
 
+  // ---------- FORM STATE ----------
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
-      <h1 className="text-3xl font-bold mb-2">Formulir Registrasi Peserta</h1>
-      <p className="text-gray-600 mb-6">Isi semua data dengan lengkap dan benar</p>
-
-      <div className="mb-8 pb-6 border-b">
-        <h2 className="text-xl font-bold text-blue-600 mb-4">📋 Data Personal</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">
-              Nama Lengkap <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="nama_lengkap"
-              value={formData.nama_lengkap}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: Achmad Rifki"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">
-              Email <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: nama@email.com"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              QR Code akan dikirim ke email ini
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">
-              Umur <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              name="umur"
-              value={formData.umur}
-              onChange={handleChange}
-              required
-              min="1"
-              max="150"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: 25"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">
-              Jenis Kelamin <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="jenis_kelamin"
-              value={formData.jenis_kelamin}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            >
-              <option value="">-- Pilih --</option>
-              {JENIS_KELAMIN_OPTIONS.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Status</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            >
-              <option value="">-- Pilih --</option>
-              {STATUS_OPTIONS.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
+    <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-6">
+      {fieldErrors.submit && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {fieldErrors.submit}
         </div>
-      </div>
+      )}
 
-      <div className="mb-8 pb-6 border-b">
-        <h2 className="text-xl font-bold text-blue-600 mb-4">📍 Lokasi</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Daerah</label>
-            <input
-              type="text"
-              name="daerah"
-              value={formData.daerah}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: Kecamatan Semen"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Desa</label>
-            <input
-              type="text"
-              name="desa"
-              value={formData.desa}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: Desa Semen"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Kelompok</label>
-            <input
-              type="text"
-              name="kelompok"
-              value={formData.kelompok}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: Kelompok A"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Dapukan</label>
-            <input
-              type="text"
-              name="dapukan"
-              value={formData.dapukan}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: Dapukan 1"
-            />
-          </div>
+      {/* Data Utama */}
+      <Card>
+        <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Data Utama</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Input
+            id="nama_lengkap"
+            name="nama_lengkap"
+            label="Nama Lengkap"
+            required
+            value={formData.nama_lengkap}
+            onChange={handleChange}
+            error={fieldErrors.nama_lengkap}
+            placeholder="Contoh: Achmad Rifki"
+          />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            label="Email"
+            required
+            value={formData.email}
+            onChange={handleChange}
+            error={fieldErrors.email}
+            helperText={!fieldErrors.email ? 'QR Code akan dikirim ke email ini' : undefined}
+            placeholder="nama@email.com"
+          />
+          <Input
+            id="umur"
+            name="umur"
+            type="number"
+            label="Umur"
+            required
+            min={1}
+            max={150}
+            value={formData.umur}
+            onChange={handleChange}
+            error={fieldErrors.umur}
+            placeholder="Contoh: 25"
+          />
+          <Select
+            id="jenis_kelamin"
+            name="jenis_kelamin"
+            label="Jenis Kelamin"
+            required
+            value={formData.jenis_kelamin}
+            onChange={handleChange}
+            error={fieldErrors.jenis_kelamin}
+          >
+            <option value="">-- Pilih --</option>
+            {JENIS_KELAMIN_OPTIONS.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </Select>
+          <Select
+            id="status"
+            name="status"
+            label="Status"
+            value={formData.status}
+            onChange={handleChange}
+          >
+            <option value="">-- Pilih --</option>
+            {STATUS_OPTIONS.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </Select>
         </div>
-      </div>
+      </Card>
 
-      <div className="mb-8 pb-6 border-b">
-        <h2 className="text-xl font-bold text-blue-600 mb-4">⚖️ Informasi Fisik</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Tinggi Badan (cm)</label>
-            <input
-              type="number"
-              name="tinggi_badan"
-              value={formData.tinggi_badan}
-              onChange={handleChange}
-              step="0.1"
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: 175"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Berat Badan (kg)</label>
-            <input
-              type="number"
-              name="berat_badan"
-              value={formData.berat_badan}
-              onChange={handleChange}
-              step="0.1"
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: 70"
-            />
-          </div>
+      {/* Lokasi */}
+      <Card>
+        <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Lokasi</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Input
+            id="daerah"
+            name="daerah"
+            label="Daerah"
+            value={formData.daerah}
+            onChange={handleChange}
+            placeholder="Contoh: Kecamatan Semen"
+          />
+          <Input
+            id="desa"
+            name="desa"
+            label="Desa"
+            value={formData.desa}
+            onChange={handleChange}
+            placeholder="Contoh: Desa Semen"
+          />
+          <Input
+            id="kelompok"
+            name="kelompok"
+            label="Kelompok"
+            value={formData.kelompok}
+            onChange={handleChange}
+            placeholder="Contoh: Kelompok A"
+          />
+          <Input
+            id="dapukan"
+            name="dapukan"
+            label="Dapukan"
+            value={formData.dapukan}
+            onChange={handleChange}
+            placeholder="Contoh: Dapukan 1"
+          />
         </div>
-      </div>
+      </Card>
 
-      <div className="mb-8 pb-6 border-b">
-        <h2 className="text-xl font-bold text-blue-600 mb-4">👨‍👩‍👧‍👦 Informasi Keluarga</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Jumlah Saudara</label>
-            <input
-              type="number"
-              name="jumlah_saudara"
-              value={formData.jumlah_saudara}
-              onChange={handleChange}
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: 3"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Anak ke</label>
-            <input
-              type="number"
-              name="anak_ke"
-              value={formData.anak_ke}
-              onChange={handleChange}
-              min="1"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: 1"
-            />
-          </div>
+      {/* Informasi Fisik */}
+      <Card>
+        <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Informasi Fisik</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Input
+            id="tinggi_badan"
+            name="tinggi_badan"
+            type="number"
+            step="0.1"
+            label="Tinggi Badan (cm)"
+            value={formData.tinggi_badan}
+            onChange={handleChange}
+            placeholder="Contoh: 175"
+          />
+          <Input
+            id="berat_badan"
+            name="berat_badan"
+            type="number"
+            step="0.1"
+            label="Berat Badan (kg)"
+            value={formData.berat_badan}
+            onChange={handleChange}
+            placeholder="Contoh: 70"
+          />
         </div>
-      </div>
+      </Card>
 
-      <div className="mb-8 pb-6 border-b">
-        <h2 className="text-xl font-bold text-blue-600 mb-4">🎓 Pendidikan & Pekerjaan</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Pendidikan Terakhir</label>
-            <select
-              name="pendidikan_terakhir"
-              value={formData.pendidikan_terakhir}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            >
-              <option value="">-- Pilih --</option>
-              {PENDIDIKAN_OPTIONS.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Pekerjaan</label>
-            <input
-              type="text"
-              name="pekerjaan"
-              value={formData.pekerjaan}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Contoh: Karyawan Swasta"
-            />
-          </div>
+      {/* Keluarga */}
+      <Card>
+        <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">
+          Informasi Keluarga
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Input
+            id="jumlah_saudara"
+            name="jumlah_saudara"
+            type="number"
+            label="Jumlah Saudara"
+            value={formData.jumlah_saudara}
+            onChange={handleChange}
+            placeholder="Contoh: 3"
+          />
+          <Input
+            id="anak_ke"
+            name="anak_ke"
+            type="number"
+            label="Anak ke"
+            value={formData.anak_ke}
+            onChange={handleChange}
+            placeholder="Contoh: 1"
+          />
         </div>
-      </div>
+      </Card>
 
-      <div className="mb-8 pb-6 border-b">
-        <h2 className="text-xl font-bold text-blue-600 mb-4">🎨 Hobi & Foto</h2>
+      {/* Pendidikan & Pekerjaan */}
+      <Card>
+        <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">
+          Pendidikan & Pekerjaan
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Select
+            id="pendidikan_terakhir"
+            name="pendidikan_terakhir"
+            label="Pendidikan Terakhir"
+            value={formData.pendidikan_terakhir}
+            onChange={handleChange}
+          >
+            <option value="">-- Pilih --</option>
+            {PENDIDIKAN_OPTIONS.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </Select>
+          <Input
+            id="pekerjaan"
+            name="pekerjaan"
+            label="Pekerjaan"
+            value={formData.pekerjaan}
+            onChange={handleChange}
+            placeholder="Contoh: Karyawan Swasta"
+          />
+        </div>
+      </Card>
+
+      {/* Hobi & Foto */}
+      <Card>
+        <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Hobi & Foto</h2>
 
         <div className="mb-4">
-          <label className="block text-gray-700 font-bold mb-2">Hobi</label>
-          <textarea
+          <Textarea
+            id="hobi"
             name="hobi"
+            label="Hobi"
+            rows={3}
             value={formData.hobi}
             onChange={handleChange}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
             placeholder="Contoh: Membaca buku, Bermain sepak bola"
           />
         </div>
 
         <div>
-          <label className="block text-gray-700 font-bold mb-2">
+          <label className="mb-2 block text-sm font-semibold text-gray-700">
             Foto Formal <span className="text-red-500">*</span>
           </label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-            {fotoPreview ? (
-              <div className="space-y-4">
-                <div className="relative w-40 h-48 mx-auto">
-                  <Image
-                    src={fotoPreview}
-                    alt="Preview"
-                    fill
-                    className="object-cover rounded-lg border-2 border-gray-300"
-                  />
-                </div>
-                <p className="text-center text-sm text-gray-600">
-                  {fotoFile?.name} ({(fotoFile!.size / 1024 / 1024).toFixed(2)} MB)
+
+          {fotoPreview ? (
+            <div className="flex items-start gap-4 rounded-xl border border-gray-200 p-4">
+              <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                <Image src={fotoPreview} alt="Preview foto formal" fill className="object-cover" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-gray-900">{fotoFile?.name}</p>
+                <p className="text-xs text-gray-500">
+                  {((fotoFile?.size || 0) / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
-            ) : (
-              <div className="text-center text-gray-500 mb-4">
-                <p className="text-2xl">📷</p>
-                <p>Belum ada foto</p>
-              </div>
-            )}
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFotoChange}
-              disabled={uploadStatus.loading}
-              className="w-full disabled:opacity-50 cursor-pointer"
-            />
-
-            <p className="text-xs text-gray-600 mt-2">
-              Foto akan dikonversi ke format WEBP (optimal untuk web).
-              Max 10MB. Format didukung: JPG, PNG, WEBP, dll
-            </p>
-          </div>
-
-          {uploadStatus.message && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm font-semibold text-blue-700 mb-2">
-                {uploadStatus.message}
-              </p>
-
-              {uploadStatus.progress > 0 && (
-                <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-blue-600 h-full transition-all duration-300"
-                    style={{ width: `${uploadStatus.progress}%` }}
-                  />
-                </div>
-              )}
-
-              {uploadStatus.originalSize && uploadStatus.optimizedSize && (
-                <div className="mt-3 space-y-1 text-xs text-gray-700">
-                  <p>
-                    <strong>Original:</strong>{' '}
-                    {(uploadStatus.originalSize / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                  <p>
-                    <strong>Optimized:</strong>{' '}
-                    {(uploadStatus.optimizedSize / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                  <p className="text-green-600">
-                    <strong>Kompresi:</strong> {uploadStatus.compressionRatio}%
-                  </p>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={removeFoto}
+                aria-label="Hapus foto"
+                className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-gray-50 hover:text-red-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
+          ) : (
+            <label
+              htmlFor="foto"
+              className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 p-6 text-center transition hover:border-purple-400 hover:bg-purple-50/30"
+            >
+              <Camera className="h-6 w-6 text-gray-400" />
+              <p className="text-sm font-medium text-gray-700">Upload Foto</p>
+              <p className="text-xs text-gray-500">JPG, PNG, WEBP · Maksimal 10MB</p>
+              <input
+                id="foto"
+                type="file"
+                accept="image/*"
+                onChange={handleFotoChange}
+                disabled={uploadStatus.loading}
+                className="sr-only"
+              />
+            </label>
+          )}
+
+          {fieldErrors.foto && <p className="mt-2 text-xs text-red-600">{fieldErrors.foto}</p>}
+          {uploadStatus.loading && (
+            <p className="mt-2 text-xs text-purple-600">{uploadStatus.message}</p>
           )}
         </div>
-      </div>
+      </Card>
 
-      <button
-        type="submit"
-        disabled={loading || uploadStatus.loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition text-lg"
-      >
-        {loading || uploadStatus.loading ? '⏳ Memproses...' : '✓ Submit Registrasi'}
-      </button>
+      <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
+        {loading ? 'Memproses...' : 'Submit Registrasi'}
+      </Button>
     </form>
   )
 }
