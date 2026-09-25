@@ -8,6 +8,7 @@ import { generateQRCodeData } from '@/lib/encryption'
 
 type FormData = {
   nama_lengkap: string
+  email: string
   umur: number | ''
   jenis_kelamin: string
   daerah: string
@@ -51,6 +52,7 @@ export default function RegistrationForm() {
 
   const [formData, setFormData] = useState<FormData>({
     nama_lengkap: '',
+    email: '',
     umur: '',
     jenis_kelamin: '',
     daerah: '',
@@ -70,6 +72,28 @@ export default function RegistrationForm() {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [participantId, setParticipantId] = useState<string | null>(null)
   const [submittedData, setSubmittedData] = useState<any>(null)
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
+
+  const sendEmailNotification = async (
+    email: string,
+    nama: string,
+    qrCodeDataUrl: string
+  ) => {
+    setEmailStatus('sending')
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nama_lengkap: nama, qrCodeDataUrl }),
+      })
+
+      if (!response.ok) throw new Error('Gagal kirim email')
+      setEmailStatus('sent')
+    } catch (error) {
+      console.error('Error sending email:', error)
+      setEmailStatus('failed')
+    }
+  }
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -170,8 +194,14 @@ export default function RegistrationForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.nama_lengkap || !formData.umur || !formData.jenis_kelamin) {
-      alert('Nama, Umur, dan Jenis Kelamin harus diisi')
+    if (!formData.nama_lengkap || !formData.email || !formData.umur || !formData.jenis_kelamin) {
+      alert('Nama, Email, Umur, dan Jenis Kelamin harus diisi')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      alert('Format email tidak valid')
       return
     }
 
@@ -183,16 +213,15 @@ export default function RegistrationForm() {
     setLoading(true)
 
     try {
-      // 1. Upload foto
       const fotoUrl = await uploadFoto(fotoFile)
       if (!fotoUrl) throw new Error('Foto gagal diupload')
 
-      // 2. Insert ke database
       const { data, error } = await supabase
         .from('participants')
         .insert([
           {
             nama_lengkap: formData.nama_lengkap,
+            email: formData.email,
             umur: formData.umur,
             jenis_kelamin: formData.jenis_kelamin,
             daerah: formData.daerah,
@@ -219,11 +248,9 @@ export default function RegistrationForm() {
       const newParticipantId = data.id
       setParticipantId(newParticipantId)
 
-      // 3. Generate QR Code
       const qrData = generateQRCodeData(newParticipantId)
       const qrImage = await generateQRCode(qrData)
 
-      // 4. Update dengan QR code
       const { error: updateError } = await supabase
         .from('participants')
         .update({
@@ -237,6 +264,9 @@ export default function RegistrationForm() {
       setQrCode(qrImage)
       setSubmittedData(data)
       setSubmitted(true)
+
+      // Kirim email notifikasi (tidak memblokir tampilan sukses)
+      sendEmailNotification(formData.email, formData.nama_lengkap, qrImage)
     } catch (error) {
       console.error('Error:', error)
       alert('Gagal menyimpan data. Coba lagi.')
@@ -247,8 +277,10 @@ export default function RegistrationForm() {
 
   const handleReset = () => {
     setSubmitted(false)
+    setEmailStatus('idle')
     setFormData({
       nama_lengkap: '',
+      email: '',
       umur: '',
       jenis_kelamin: '',
       daerah: '',
@@ -270,7 +302,6 @@ export default function RegistrationForm() {
     setParticipantId(null)
   }
 
-  // Success screen
   if (submitted && qrCode && participantId && submittedData) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow">
@@ -279,10 +310,8 @@ export default function RegistrationForm() {
           <p className="text-gray-600 mt-2">Data Anda telah tersimpan</p>
         </div>
 
-        {/* Card Display */}
         <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-lg p-6 mb-6 border-2 border-blue-300">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Foto */}
             <div className="flex justify-center">
               {submittedData.foto_formal_url && (
                 <div className="relative w-40 h-48">
@@ -296,7 +325,6 @@ export default function RegistrationForm() {
               )}
             </div>
 
-            {/* Data */}
             <div className="md:col-span-2 space-y-2 text-sm">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -363,13 +391,37 @@ export default function RegistrationForm() {
           </div>
         </div>
 
-        {/* QR Code */}
         <div className="mb-6 p-6 bg-gray-100 rounded-lg flex flex-col items-center">
           <p className="text-sm text-gray-600 mb-3">Scan untuk melihat data peserta:</p>
           <img src={qrCode} alt="QR Code" className="w-64 h-64 border-4 border-white" />
         </div>
 
-        {/* Buttons */}
+        {/* Status Email */}
+        <div className="mb-6 p-4 rounded-lg border text-sm">
+          {emailStatus === 'sending' && (
+            <p className="text-blue-600">📧 Mengirim QR Code ke {submittedData.email}...</p>
+          )}
+          {emailStatus === 'sent' && (
+            <p className="text-green-600">
+              ✅ QR Code berhasil dikirim ke <strong>{submittedData.email}</strong>
+            </p>
+          )}
+          {emailStatus === 'failed' && (
+            <div className="flex items-center justify-between">
+              <p className="text-red-600">❌ Gagal mengirim email</p>
+              <button
+                type="button"
+                onClick={() =>
+                  sendEmailNotification(submittedData.email, submittedData.nama_lengkap, qrCode)
+                }
+                className="text-blue-600 hover:underline font-semibold"
+              >
+                Coba Lagi
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="space-y-3">
           <button
             onClick={() => downloadQRCode(qrCode, `qr-${submittedData.nama_lengkap}`)}
@@ -389,13 +441,11 @@ export default function RegistrationForm() {
     )
   }
 
-  // Form screen
   return (
     <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow">
       <h1 className="text-3xl font-bold mb-2">Formulir Registrasi Peserta</h1>
       <p className="text-gray-600 mb-6">Isi semua data dengan lengkap dan benar</p>
 
-      {/* Section 1: Data Personal */}
       <div className="mb-8 pb-6 border-b">
         <h2 className="text-xl font-bold text-blue-600 mb-4">📋 Data Personal</h2>
 
@@ -413,6 +463,24 @@ export default function RegistrationForm() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               placeholder="Contoh: Achmad Rifki"
             />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 font-bold mb-2">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="Contoh: nama@email.com"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              QR Code akan dikirim ke email ini
+            </p>
           </div>
 
           <div>
@@ -471,7 +539,6 @@ export default function RegistrationForm() {
         </div>
       </div>
 
-      {/* Section 2: Lokasi */}
       <div className="mb-8 pb-6 border-b">
         <h2 className="text-xl font-bold text-blue-600 mb-4">📍 Lokasi</h2>
 
@@ -526,7 +593,6 @@ export default function RegistrationForm() {
         </div>
       </div>
 
-      {/* Section 3: Physical Info */}
       <div className="mb-8 pb-6 border-b">
         <h2 className="text-xl font-bold text-blue-600 mb-4">⚖️ Informasi Fisik</h2>
 
@@ -561,7 +627,6 @@ export default function RegistrationForm() {
         </div>
       </div>
 
-      {/* Section 4: Keluarga */}
       <div className="mb-8 pb-6 border-b">
         <h2 className="text-xl font-bold text-blue-600 mb-4">👨‍👩‍👧‍👦 Informasi Keluarga</h2>
 
@@ -594,7 +659,6 @@ export default function RegistrationForm() {
         </div>
       </div>
 
-      {/* Section 5: Pendidikan & Pekerjaan */}
       <div className="mb-8 pb-6 border-b">
         <h2 className="text-xl font-bold text-blue-600 mb-4">🎓 Pendidikan & Pekerjaan</h2>
 
@@ -630,7 +694,6 @@ export default function RegistrationForm() {
         </div>
       </div>
 
-      {/* Section 6: Hobi & Foto */}
       <div className="mb-8 pb-6 border-b">
         <h2 className="text-xl font-bold text-blue-600 mb-4">🎨 Hobi & Foto</h2>
 
@@ -686,7 +749,6 @@ export default function RegistrationForm() {
             </p>
           </div>
 
-          {/* Upload Status */}
           {uploadStatus.message && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <p className="text-sm font-semibold text-blue-700 mb-2">
@@ -722,7 +784,6 @@ export default function RegistrationForm() {
         </div>
       </div>
 
-      {/* Submit Button */}
       <button
         type="submit"
         disabled={loading || uploadStatus.loading}
