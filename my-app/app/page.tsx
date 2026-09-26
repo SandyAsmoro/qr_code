@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import { QrCode, ScanLine, LayoutDashboard } from 'lucide-react'
+import { QrCode } from 'lucide-react'
 import RegistrationForm from './components/RegistrationForm'
-import Card from '@/components/ui/Card'
 
 export default function Home() {
   return (
@@ -21,33 +20,7 @@ export default function Home() {
 
         <RegistrationForm />
 
-        <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2">
-          <Link href="/scan-card">
-            <Card className="flex items-center gap-3 transition-colors hover:border-purple-300 hover:bg-purple-50/50">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-50">
-                <ScanLine className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Scan Peserta</p>
-                <p className="text-xs text-gray-500">Untuk panitia</p>
-              </div>
-            </Card>
-          </Link>
-
-          <Link href="/scan-attendance">
-            <Card className="flex items-center gap-3 transition-colors hover:border-purple-300 hover:bg-purple-50/50">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-50">
-                <LayoutDashboard className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Scan Presensi</p>
-                <p className="text-xs text-gray-500">Untuk admin</p>
-              </div>
-            </Card>
-          </Link>
-        </div>
-
-        <div className="mt-4 text-center">
+        <div className="mt-8 text-center">
           <Link href="/admin" className="text-xs text-gray-400 hover:text-gray-600 hover:underline">
             Admin Dashboard
           </Link>

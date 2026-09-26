@@ -32,7 +32,7 @@ type FormDataType = {
 }
 
 const PENDIDIKAN_OPTIONS = ['SD', 'SMP', 'SMA', 'D1', 'D2', 'D3', 'S1', 'S2', 'S3']
-const STATUS_OPTIONS = ['Belum Menikah', 'Duda', 'Janda']
+const STATUS_OPTIONS = ['Belum Menikah', 'Menikah', 'Cerai']
 const JENIS_KELAMIN_OPTIONS = ['Laki-laki', 'Perempuan']
 
 const initialFormData: FormDataType = {
@@ -152,15 +152,15 @@ export default function RegistrationForm() {
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {}
-    if (!formData.nama_lengkap.trim()) errors.nama_lengkap = 'Nama lengkap wajib diisi'
+    if (!formData.nama_lengkap.trim()) errors.nama_lengkap = 'Amal Sholih Diisi'
     if (!formData.email.trim()) {
-      errors.email = 'Email wajib diisi'
+      errors.email = 'Amal Sholih Diisi'
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Format email tidak valid'
     }
-    if (!formData.umur) errors.umur = 'Umur wajib diisi'
-    if (!formData.jenis_kelamin) errors.jenis_kelamin = 'Jenis kelamin wajib dipilih'
-    if (!fotoFile) errors.foto = 'Foto formal wajib diunggah'
+    if (!formData.umur) errors.umur = 'Amal Sholih Diisi'
+    if (!formData.jenis_kelamin) errors.jenis_kelamin = 'Amal Sholih Diisi'
+    if (!fotoFile) errors.foto = 'Amal Sholih Diisi'
 
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
@@ -257,7 +257,7 @@ export default function RegistrationForm() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             <div className="flex justify-center sm:col-span-1">
               {submittedData.foto_formal_url && (
-                <div className="relative aspect-[4/5] w-32 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
+                <div className="relative aspect-[4/6] w-32 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
                   <Image
                     src={submittedData.foto_formal_url}
                     alt={`Foto formal ${submittedData.nama_lengkap}`}
@@ -420,6 +420,7 @@ export default function RegistrationForm() {
             id="status"
             name="status"
             label="Status"
+            required
             value={formData.status}
             onChange={handleChange}
           >
@@ -441,6 +442,7 @@ export default function RegistrationForm() {
             id="daerah"
             name="daerah"
             label="Daerah"
+            required
             value={formData.daerah}
             onChange={handleChange}
             placeholder="Contoh: Kecamatan Semen"
@@ -449,6 +451,7 @@ export default function RegistrationForm() {
             id="desa"
             name="desa"
             label="Desa"
+            required
             value={formData.desa}
             onChange={handleChange}
             placeholder="Contoh: Desa Semen"
@@ -457,6 +460,7 @@ export default function RegistrationForm() {
             id="kelompok"
             name="kelompok"
             label="Kelompok"
+            required
             value={formData.kelompok}
             onChange={handleChange}
             placeholder="Contoh: Kelompok A"
@@ -465,6 +469,7 @@ export default function RegistrationForm() {
             id="dapukan"
             name="dapukan"
             label="Dapukan"
+            required
             value={formData.dapukan}
             onChange={handleChange}
             placeholder="Contoh: Dapukan 1"
@@ -482,6 +487,7 @@ export default function RegistrationForm() {
             type="number"
             step="0.1"
             label="Tinggi Badan (cm)"
+            required
             value={formData.tinggi_badan}
             onChange={handleChange}
             placeholder="Contoh: 175"
@@ -492,6 +498,7 @@ export default function RegistrationForm() {
             type="number"
             step="0.1"
             label="Berat Badan (kg)"
+            required
             value={formData.berat_badan}
             onChange={handleChange}
             placeholder="Contoh: 70"
@@ -510,6 +517,7 @@ export default function RegistrationForm() {
             name="jumlah_saudara"
             type="number"
             label="Jumlah Saudara"
+            required
             value={formData.jumlah_saudara}
             onChange={handleChange}
             placeholder="Contoh: 3"
@@ -519,6 +527,7 @@ export default function RegistrationForm() {
             name="anak_ke"
             type="number"
             label="Anak ke"
+            required
             value={formData.anak_ke}
             onChange={handleChange}
             placeholder="Contoh: 1"
@@ -536,6 +545,7 @@ export default function RegistrationForm() {
             id="pendidikan_terakhir"
             name="pendidikan_terakhir"
             label="Pendidikan Terakhir"
+            required
             value={formData.pendidikan_terakhir}
             onChange={handleChange}
           >
@@ -550,6 +560,7 @@ export default function RegistrationForm() {
             id="pekerjaan"
             name="pekerjaan"
             label="Pekerjaan"
+            required
             value={formData.pekerjaan}
             onChange={handleChange}
             placeholder="Contoh: Karyawan Swasta"
@@ -566,6 +577,7 @@ export default function RegistrationForm() {
             id="hobi"
             name="hobi"
             label="Hobi"
+            required
             rows={3}
             value={formData.hobi}
             onChange={handleChange}
@@ -580,7 +592,7 @@ export default function RegistrationForm() {
 
           {fotoPreview ? (
             <div className="flex items-start gap-4 rounded-xl border border-gray-200 p-4">
-              <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+              <div className="relative aspect-[4/6] w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                 <Image src={fotoPreview} alt="Preview foto formal" fill className="object-cover" />
               </div>
               <div className="min-w-0 flex-1">

@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const PROTECTED_PREFIXES = ['/admin', '/scan-card', '/scan-attendance']
+
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  // Skip proteksi untuk halaman login itu sendiri
+  // Halaman login sendiri tidak diproteksi
   if (path === '/admin/login') {
     return NextResponse.next()
   }
 
-  if (path.startsWith('/admin')) {
-    const session = request.cookies.get('admin_session')
+  const isProtected = PROTECTED_PREFIXES.some((prefix) => path.startsWith(prefix))
 
-    // Sementara
-    console.log('Cookie session:', session?.value)
-    console.log('Env password:', process.env.ADMIN_PASSWORD)
-    console.log('Match?', session?.value === process.env.ADMIN_PASSWORD)
-    // sementara
+  if (isProtected) {
+    const session = request.cookies.get('admin_session')
 
     if (!session || session.value !== process.env.ADMIN_PASSWORD) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
@@ -26,5 +24,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/scan-card/:path*', '/scan-attendance/:path*'],
 }

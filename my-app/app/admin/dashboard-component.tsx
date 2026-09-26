@@ -8,6 +8,8 @@ import {
   UserCheck,
   UserX,
   Search,
+  SlidersHorizontal,
+  X,
   Download,
   LogOut,
   Wrench,
@@ -16,6 +18,14 @@ import {
   User,
   Inbox,
   FilterX,
+  MapPin,
+  Ruler,
+  GraduationCap,
+  Briefcase,
+  Heart,
+  Users2,
+  ScanLine,
+  ClipboardCheck,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { exportToExcel, exportToCSV } from '@/lib/exportData'
@@ -57,13 +67,16 @@ export default function AdminDashboard() {
   const [loadError, setLoadError] = useState(false)
 
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterDaerah, setFilterDaerah] = useState('')
   const [filterDesa, setFilterDesa] = useState('')
   const [filterKelompok, setFilterKelompok] = useState('')
+  const [filterJenisKelamin, setFilterJenisKelamin] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'hadir' | 'belum'>('all')
 
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Participant | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     fetchParticipants()
@@ -130,11 +143,17 @@ export default function AdminDashboard() {
 
   const resetFilters = () => {
     setSearchQuery('')
+    setFilterDaerah('')
     setFilterDesa('')
     setFilterKelompok('')
+    setFilterJenisKelamin('')
     setFilterStatus('all')
   }
 
+  const uniqueDaerah = useMemo(
+    () => Array.from(new Set(participants.map((p) => p.daerah).filter(Boolean))),
+    [participants]
+  )
   const uniqueDesa = useMemo(
     () => Array.from(new Set(participants.map((p) => p.desa).filter(Boolean))),
     [participants]
@@ -144,6 +163,10 @@ export default function AdminDashboard() {
     [participants]
   )
 
+  const activeFilterCount =
+    [filterDaerah, filterDesa, filterKelompok, filterJenisKelamin].filter(Boolean).length +
+    (filterStatus !== 'all' ? 1 : 0)
+
   const filteredParticipants = useMemo(() => {
     return participants.filter((p) => {
       const matchSearch =
@@ -151,15 +174,17 @@ export default function AdminDashboard() {
         p.nama_lengkap.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.pekerjaan?.toLowerCase().includes(searchQuery.toLowerCase())
 
+      const matchDaerah = filterDaerah === '' || p.daerah === filterDaerah
       const matchDesa = filterDesa === '' || p.desa === filterDesa
       const matchKelompok = filterKelompok === '' || p.kelompok === filterKelompok
+      const matchJenisKelamin = filterJenisKelamin === '' || p.jenis_kelamin === filterJenisKelamin
 
       const matchStatus =
         filterStatus === 'all' ||
         (filterStatus === 'hadir' && (p.attendance_count || 0) > 0) ||
         (filterStatus === 'belum' && (p.attendance_count || 0) === 0)
 
-      return matchSearch && matchDesa && matchKelompok && matchStatus
+      return matchSearch && matchDaerah && matchDesa && matchKelompok && matchJenisKelamin && matchStatus
     })
   }, [participants, searchQuery, filterDesa, filterKelompok, filterStatus])
 
@@ -188,6 +213,20 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              icon={<ScanLine className="h-4 w-4" />}
+              onClick={() => router.push('/scan-card')}
+            >
+              Scan Peserta
+            </Button>
+            <Button
+              variant="secondary"
+              icon={<ClipboardCheck className="h-4 w-4" />}
+              onClick={() => router.push('/scan-attendance')}
+            >
+              Scan Presensi
+            </Button>
             <Button
               variant="secondary"
               icon={<Wrench className="h-4 w-4" />}
@@ -239,47 +278,91 @@ export default function AdminDashboard() {
 
             {/* Filters */}
             <Card className="mb-6">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <div className="lg:col-span-1">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="search"
-                      placeholder="Cari nama / pekerjaan..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
-                    />
-                  </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="search"
+                    placeholder="Cari nama / pekerjaan..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
+                  />
                 </div>
 
-                <Select value={filterDesa} onChange={(e) => setFilterDesa(e.target.value)}>
-                  <option value="">Semua Desa</option>
-                  {uniqueDesa.map((desa) => (
-                    <option key={desa} value={desa}>
-                      {desa}
-                    </option>
-                  ))}
-                </Select>
-
-                <Select value={filterKelompok} onChange={(e) => setFilterKelompok(e.target.value)}>
-                  <option value="">Semua Kelompok</option>
-                  {uniqueKelompok.map((kelompok) => (
-                    <option key={kelompok} value={kelompok}>
-                      {kelompok}
-                    </option>
-                  ))}
-                </Select>
-
-                <Select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as 'all' | 'hadir' | 'belum')}
-                >
-                  <option value="all">Semua Status</option>
-                  <option value="hadir">Sudah Hadir</option>
-                  <option value="belum">Belum Hadir</option>
-                </Select>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    icon={<SlidersHorizontal className="h-4 w-4" />}
+                    onClick={() => setShowFilters((v) => !v)}
+                  >
+                    Filter
+                    {activeFilterCount > 0 && (
+                      <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </Button>
+                  {activeFilterCount > 0 && (
+                    <Button
+                      variant="secondary"
+                      icon={<X className="h-4 w-4" />}
+                      onClick={resetFilters}
+                    >
+                      Reset
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              {showFilters && (
+                <div className="mt-4 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-3 lg:grid-cols-5">
+                  <Select value={filterDaerah} onChange={(e) => setFilterDaerah(e.target.value)}>
+                    <option value="">Semua Daerah</option>
+                    {uniqueDaerah.map((daerah) => (
+                      <option key={daerah} value={daerah}>
+                        {daerah}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Select value={filterDesa} onChange={(e) => setFilterDesa(e.target.value)}>
+                    <option value="">Semua Desa</option>
+                    {uniqueDesa.map((desa) => (
+                      <option key={desa} value={desa}>
+                        {desa}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Select value={filterKelompok} onChange={(e) => setFilterKelompok(e.target.value)}>
+                    <option value="">Semua Kelompok</option>
+                    {uniqueKelompok.map((kelompok) => (
+                      <option key={kelompok} value={kelompok}>
+                        {kelompok}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Select
+                    value={filterJenisKelamin}
+                    onChange={(e) => setFilterJenisKelamin(e.target.value)}
+                  >
+                    <option value="">Semua Jenis Kelamin</option>
+                    <option value="Laki-laki">Laki-laki</option>
+                    <option value="Perempuan">Perempuan</option>
+                  </Select>
+
+                  <Select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value as 'all' | 'hadir' | 'belum')}
+                  >
+                    <option value="all">Semua Status</option>
+                    <option value="hadir">Sudah Hadir</option>
+                    <option value="belum">Belum Hadir</option>
+                  </Select>
+                </div>
+              )}
 
               <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-gray-600">
@@ -338,7 +421,6 @@ export default function AdminDashboard() {
                       <th className="p-3 text-left font-semibold text-gray-700">Desa</th>
                       <th className="p-3 text-left font-semibold text-gray-700">Kelompok</th>
                       <th className="p-3 text-left font-semibold text-gray-700">Presensi</th>
-                      <th className="p-3 text-left font-semibold text-gray-700">Tanggal</th>
                       <th className="p-3 text-left font-semibold text-gray-700">Aksi</th>
                     </tr>
                   </thead>
@@ -372,9 +454,6 @@ export default function AdminDashboard() {
                           ) : (
                             <Badge variant="warning">Belum Hadir</Badge>
                           )}
-                        </td>
-                        <td className="p-3 text-xs text-gray-500">
-                          {new Date(p.created_at).toLocaleDateString('id-ID')}
                         </td>
                         <td className="p-3">
                           <div className="flex gap-1">
@@ -411,43 +490,76 @@ export default function AdminDashboard() {
         title="Detail Peserta"
       >
         {selectedParticipant && (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <div className="flex justify-center sm:col-span-1">
-              {selectedParticipant.foto_formal_url ? (
-                <div className="relative aspect-[4/5] w-28 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
-                  <Image
-                    src={selectedParticipant.foto_formal_url}
-                    alt={`Foto formal ${selectedParticipant.nama_lengkap}`}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+          <div className="flex flex-col items-center">
+            {selectedParticipant.foto_formal_url ? (
+              <div className="relative aspect-[4/6] w-40 overflow-hidden rounded-xl bg-gray-100">
+                <Image
+                  src={selectedParticipant.foto_formal_url}
+                  alt={`Foto formal ${selectedParticipant.nama_lengkap}`}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex aspect-[4/6] w-40 items-center justify-center rounded-xl bg-gray-100">
+                <User className="h-10 w-10 text-gray-300" />
+              </div>
+            )}
+
+            <p className="mt-4 text-xl font-bold text-gray-900">
+              {selectedParticipant.nama_lengkap}
+            </p>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              <Badge variant="info">{selectedParticipant.umur} tahun</Badge>
+              <Badge variant="info">{selectedParticipant.jenis_kelamin}</Badge>
+              {(selectedParticipant.attendance_count || 0) > 0 ? (
+                <Badge variant="success">Sudah Hadir</Badge>
               ) : (
-                <div className="flex aspect-[4/5] w-28 items-center justify-center rounded-xl bg-gray-100 sm:w-full">
-                  <User className="h-8 w-8 text-gray-300" />
-                </div>
+                <Badge variant="warning">Belum Hadir</Badge>
               )}
             </div>
 
-            <div className="space-y-2 text-sm sm:col-span-2">
-              <p><span className="text-gray-500">Nama:</span> <span className="font-medium text-gray-900">{selectedParticipant.nama_lengkap}</span></p>
-              <p><span className="text-gray-500">Umur:</span> {selectedParticipant.umur} tahun</p>
-              <p><span className="text-gray-500">Jenis Kelamin:</span> {selectedParticipant.jenis_kelamin}</p>
-              <p><span className="text-gray-500">Daerah:</span> {selectedParticipant.daerah || '-'}</p>
-              <p><span className="text-gray-500">Desa:</span> {selectedParticipant.desa || '-'}</p>
-              <p><span className="text-gray-500">Kelompok:</span> {selectedParticipant.kelompok || '-'}</p>
-              <p><span className="text-gray-500">Dapukan:</span> {selectedParticipant.dapukan || '-'}</p>
-              <p><span className="text-gray-500">TB/BB:</span> {selectedParticipant.tinggi_badan || '-'} cm / {selectedParticipant.berat_badan || '-'} kg</p>
-              <p><span className="text-gray-500">Jumlah Saudara:</span> {selectedParticipant.jumlah_saudara || '-'}</p>
-              <p><span className="text-gray-500">Anak ke:</span> {selectedParticipant.anak_ke || '-'}</p>
-              <p><span className="text-gray-500">Pendidikan:</span> {selectedParticipant.pendidikan_terakhir || '-'}</p>
-              <p><span className="text-gray-500">Pekerjaan:</span> {selectedParticipant.pekerjaan || '-'}</p>
-              <p><span className="text-gray-500">Status:</span> {selectedParticipant.status || '-'}</p>
-              <p><span className="text-gray-500">Hobi:</span> {selectedParticipant.hobi || '-'}</p>
-              <p className="pt-2">
-                <span className="text-gray-500">Jumlah Scan Presensi:</span>{' '}
-                <Badge variant="info">{selectedParticipant.attendance_count || 0}x</Badge>
-              </p>
+            <div className="mt-6 grid w-full grid-cols-1 gap-x-6 gap-y-3 border-t border-gray-100 pt-5 text-left sm:grid-cols-2">
+              {[
+                { icon: MapPin, label: 'Daerah', value: selectedParticipant.daerah || '-' },
+                { icon: MapPin, label: 'Desa', value: selectedParticipant.desa || '-' },
+                { icon: Users2, label: 'Kelompok', value: selectedParticipant.kelompok || '-' },
+                { icon: Users2, label: 'Dapukan', value: selectedParticipant.dapukan || '-' },
+                {
+                  icon: Ruler,
+                  label: 'TB / BB',
+                  value: `${selectedParticipant.tinggi_badan || '-'} cm / ${
+                    selectedParticipant.berat_badan || '-'
+                  } kg`,
+                },
+                {
+                  icon: Users2,
+                  label: 'Jumlah Saudara',
+                  value: selectedParticipant.jumlah_saudara ?? '-',
+                },
+                { icon: Users2, label: 'Anak ke', value: selectedParticipant.anak_ke ?? '-' },
+                {
+                  icon: GraduationCap,
+                  label: 'Pendidikan',
+                  value: selectedParticipant.pendidikan_terakhir || '-',
+                },
+                { icon: Briefcase, label: 'Pekerjaan', value: selectedParticipant.pekerjaan || '-' },
+                { icon: Users2, label: 'Status', value: selectedParticipant.status || '-' },
+                { icon: Heart, label: 'Hobi', value: selectedParticipant.hobi || '-' },
+              ].map((item) => (
+                <div key={item.label} className="flex items-start gap-2">
+                  <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  <div>
+                    <p className="text-xs uppercase text-gray-500">{item.label}</p>
+                    <p className="text-sm text-gray-700">{item.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 flex w-full items-center justify-between border-t border-gray-100 pt-4">
+              <p className="text-sm text-gray-500">Jumlah Scan Presensi</p>
+              <Badge variant="info">{selectedParticipant.attendance_count || 0}x</Badge>
             </div>
           </div>
         )}

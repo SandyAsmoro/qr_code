@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   RotateCcw,
   Printer,
+  IdCard,
   User,
   MapPin,
   Ruler,
@@ -21,6 +22,7 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import Spinner from '@/components/ui/Spinner'
+import Modal from '@/components/ui/Modal'
 
 type ScanMode = 'display' | 'attendance'
 
@@ -55,12 +57,74 @@ const modeConfig: Record<ScanMode, { title: string; subtitle: string }> = {
   },
 }
 
+/**
+ * Desain visual Kartu ID (dipakai untuk preview di layar & cetak),
+ * dipisah jadi satu komponen supaya tidak duplikasi markup.
+ */
+function IDCardVisual({ data }: { data: ScannedParticipant }) {
+  return (
+    <div className="flex h-[130mm] w-[90mm] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-sm">
+      <div className="bg-purple-600 px-3 py-2 text-center text-white">
+        <p className="text-[9px] font-semibold uppercase tracking-wide">Kartu Peserta</p>
+      </div>
+
+      <div className="flex flex-1 flex-col items-center px-3 pt-3">
+        {data.foto_formal_url && (
+          <div className="relative h-[45mm] w-[35mm] overflow-hidden rounded-md border border-gray-300">
+            <Image
+              src={data.foto_formal_url}
+              alt={`Foto formal ${data.nama_lengkap}`}
+              fill
+              className="object-cover"
+            />
+          </div>
+        )}
+
+        <p className="mt-2 text-center text-[13px] font-bold leading-tight">{data.nama_lengkap}</p>
+        <p className="text-center text-[9px] text-gray-600">
+          {data.umur} tahun · {data.jenis_kelamin}
+        </p>
+
+        <div className="mt-2 w-full space-y-1 border-t border-gray-200 pt-2 text-[8.5px] leading-tight">
+          <div className="flex justify-between">
+            <span className="text-gray-500">Desa</span>
+            <span className="font-medium">{data.desa || '-'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Kelompok</span>
+            <span className="font-medium">{data.kelompok || '-'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Dapukan</span>
+            <span className="font-medium">{data.dapukan || '-'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-500">Status</span>
+            <span className="font-medium">{data.status || '-'}</span>
+          </div>
+        </div>
+
+        {data.qr_code_url && (
+          <div className="relative mt-2 h-[18mm] w-[18mm]">
+            <Image src={data.qr_code_url} alt="QR Code peserta" fill className="object-contain" />
+          </div>
+        )}
+      </div>
+
+      <div className="bg-gray-100 px-3 py-1 text-center text-[7px] text-gray-500">
+        ID: {data.id.slice(0, 8).toUpperCase()}
+      </div>
+    </div>
+  )
+}
+
 export default function QRScanner({ mode }: { mode: ScanMode }) {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const [scannedData, setScannedData] = useState<ScannedParticipant | null>(null)
   const [loading, setLoading] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
   const [attendanceSuccess, setAttendanceSuccess] = useState(false)
+  const [showCardPreview, setShowCardPreview] = useState(false)
 
   const handleScanSuccess = async (decodedText: string) => {
     const participantId = parseQRCodeData(decodedText)
@@ -125,6 +189,7 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
     setScannedData(null)
     setAttendanceSuccess(false)
     setScanError(null)
+    setShowCardPreview(false)
     startScanner()
   }
 
@@ -200,90 +265,63 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
             </div>
           </Card>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            {mode === 'display' && (
+          {/* 2 Opsi: Tampilkan & Cetak (hanya untuk mode scan-card) */}
+          {mode === 'display' && (
+            <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Button
                 variant="secondary"
                 size="lg"
-                className="flex-1"
+                icon={<IdCard className="h-4 w-4" />}
+                onClick={() => setShowCardPreview(true)}
+              >
+                Tampilkan Kartu ID
+              </Button>
+              <Button
+                variant="secondary"
+                size="lg"
                 icon={<Printer className="h-4 w-4" />}
                 onClick={() => window.print()}
               >
                 Cetak Kartu ID
               </Button>
-            )}
-            <Button
-              variant="primary"
-              size="lg"
-              className="flex-1"
-              icon={<RotateCcw className="h-4 w-4" />}
-              onClick={handleScanAgain}
-            >
-              Scan QR Code Lain
-            </Button>
-          </div>
+            </div>
+          )}
+
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full"
+            icon={<RotateCcw className="h-4 w-4" />}
+            onClick={handleScanAgain}
+          >
+            Scan QR Code Lain
+          </Button>
         </div>
 
         {/* Kartu ID — HANYA tampil saat print, tersembunyi di layar */}
-        <div className="hidden print:flex print:h-[130mm] print:w-[90mm] print:flex-col print:overflow-hidden print:bg-white print:text-black">
-          <div className="bg-purple-600 px-3 py-2 text-center text-white">
-            <p className="text-[9px] font-semibold uppercase tracking-wide">Kartu Peserta</p>
-          </div>
-
-          <div className="flex flex-1 flex-col items-center px-3 pt-3">
-            {scannedData.foto_formal_url && (
-              <div className="relative h-[45mm] w-[35mm] overflow-hidden rounded-md border border-gray-300">
-                <Image
-                  src={scannedData.foto_formal_url}
-                  alt={`Foto formal ${scannedData.nama_lengkap}`}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            )}
-
-            <p className="mt-2 text-center text-[13px] font-bold leading-tight">
-              {scannedData.nama_lengkap}
-            </p>
-            <p className="text-center text-[9px] text-gray-600">
-              {scannedData.umur} tahun · {scannedData.jenis_kelamin}
-            </p>
-
-            <div className="mt-2 w-full space-y-1 border-t border-gray-200 pt-2 text-[8.5px] leading-tight">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Desa</span>
-                <span className="font-medium">{scannedData.desa || '-'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Kelompok</span>
-                <span className="font-medium">{scannedData.kelompok || '-'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Dapukan</span>
-                <span className="font-medium">{scannedData.dapukan || '-'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Status</span>
-                <span className="font-medium">{scannedData.status || '-'}</span>
-              </div>
-            </div>
-
-            {scannedData.qr_code_url && (
-              <div className="relative mt-2 h-[18mm] w-[18mm]">
-                <Image
-                  src={scannedData.qr_code_url}
-                  alt="QR Code peserta"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="bg-gray-100 px-3 py-1 text-center text-[7px] text-gray-500">
-            ID: {scannedData.id.slice(0, 8).toUpperCase()}
-          </div>
+        <div className="hidden print:block">
+          <IDCardVisual data={scannedData} />
         </div>
+
+        {/* Modal Preview Kartu ID — tampil di layar saat tombol "Tampilkan Kartu ID" ditekan */}
+        <Modal
+          isOpen={showCardPreview}
+          onClose={() => setShowCardPreview(false)}
+          title="Preview Kartu ID"
+          maxWidth="max-w-sm"
+        >
+          <div className="flex flex-col items-center gap-4">
+            <IDCardVisual data={scannedData} />
+            <Button
+              variant="primary"
+              icon={<Printer className="h-4 w-4" />}
+              onClick={() => window.print()}
+              className="w-full"
+            >
+              Cetak Kartu Ini
+            </Button>
+          </div>
+        </Modal>
       </div>
     )
   }
