@@ -3,8 +3,30 @@
 import { useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import {
+  Users,
+  UserCheck,
+  UserX,
+  Search,
+  Download,
+  LogOut,
+  Wrench,
+  Eye,
+  Trash2,
+  User,
+  Inbox,
+  FilterX,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { exportToExcel, exportToCSV } from '@/lib/exportData'
+import Card from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+import Badge from '@/components/ui/Badge'
+import Select from '@/components/ui/Select'
+import Spinner from '@/components/ui/Spinner'
+import EmptyState from '@/components/ui/EmptyState'
+import Modal from '@/components/ui/Modal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 type Participant = {
   id: string
@@ -32,11 +54,16 @@ export default function AdminDashboard() {
   const router = useRouter()
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+
   const [searchQuery, setSearchQuery] = useState('')
   const [filterDesa, setFilterDesa] = useState('')
   const [filterKelompok, setFilterKelompok] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'hadir' | 'belum'>('all')
+
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Participant | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchParticipants()
@@ -44,6 +71,7 @@ export default function AdminDashboard() {
 
   const fetchParticipants = async () => {
     setLoading(true)
+    setLoadError(false)
     try {
       const { data: participantsData, error: participantsError } = await supabase
         .from('participants')
@@ -71,7 +99,7 @@ export default function AdminDashboard() {
       setParticipants(merged)
     } catch (error) {
       console.error('Error fetching participants:', error)
-      alert('Gagal memuat data peserta')
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -83,24 +111,30 @@ export default function AdminDashboard() {
     router.refresh()
   }
 
-  const handleDelete = async (id: string, nama: string) => {
-    if (!confirm(`Yakin ingin menghapus data "${nama}"? Tindakan ini tidak bisa dibatalkan.`)) {
-      return
-    }
-
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
     try {
-      const { error } = await supabase.from('participants').delete().eq('id', id)
+      const { error } = await supabase.from('participants').delete().eq('id', deleteTarget.id)
       if (error) throw error
 
-      setParticipants((prev) => prev.filter((p) => p.id !== id))
+      setParticipants((prev) => prev.filter((p) => p.id !== deleteTarget.id))
+      setDeleteTarget(null)
       setSelectedParticipant(null)
     } catch (error) {
       console.error('Error deleting participant:', error)
-      alert('Gagal menghapus data')
+    } finally {
+      setDeleting(false)
     }
   }
 
-  // Unique values untuk filter dropdown
+  const resetFilters = () => {
+    setSearchQuery('')
+    setFilterDesa('')
+    setFilterKelompok('')
+    setFilterStatus('all')
+  }
+
   const uniqueDesa = useMemo(
     () => Array.from(new Set(participants.map((p) => p.desa).filter(Boolean))),
     [participants]
@@ -110,7 +144,6 @@ export default function AdminDashboard() {
     [participants]
   )
 
-  // Filtered data
   const filteredParticipants = useMemo(() => {
     return participants.filter((p) => {
       const matchSearch =
@@ -133,302 +166,302 @@ export default function AdminDashboard() {
   const stats = useMemo(() => {
     const total = participants.length
     const hadir = participants.filter((p) => (p.attendance_count || 0) > 0).length
-    const lakiLaki = participants.filter((p) => p.jenis_kelamin === 'Laki-laki').length
-    const perempuan = participants.filter((p) => p.jenis_kelamin === 'Perempuan').length
-
-    return { total, hadir, belum: total - hadir, lakiLaki, perempuan }
+    return { total, hadir, belum: total - hadir }
   }, [participants])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl font-semibold">⏳ Memuat data peserta...</p>
-      </div>
-    )
-  }
+  const statCards = [
+    { label: 'Total Peserta', value: stats.total, icon: Users, color: 'text-purple-600 bg-purple-50' },
+    { label: 'Sudah Hadir', value: stats.hadir, icon: UserCheck, color: 'text-green-600 bg-green-50' },
+    { label: 'Belum Hadir', value: stats.belum, icon: UserX, color: 'text-orange-600 bg-orange-50' },
+  ]
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">📊 Admin Dashboard</h1>
-          <p className="text-gray-600">Kelola data peserta & presensi</p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
-        >
-          🚪 Logout
-        </button>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        {/* Page Header */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              Admin Dashboard
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">Kelola data peserta & presensi</p>
+          </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
-          <p className="text-gray-500 text-xs uppercase">Total Peserta</p>
-          <p className="text-2xl font-bold">{stats.total}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-          <p className="text-gray-500 text-xs uppercase">Sudah Hadir</p>
-          <p className="text-2xl font-bold text-green-600">{stats.hadir}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
-          <p className="text-gray-500 text-xs uppercase">Belum Hadir</p>
-          <p className="text-2xl font-bold text-orange-600">{stats.belum}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-indigo-500">
-          <p className="text-gray-500 text-xs uppercase">Laki-laki</p>
-          <p className="text-2xl font-bold">{stats.lakiLaki}</p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-pink-500">
-          <p className="text-gray-500 text-xs uppercase">Perempuan</p>
-          <p className="text-2xl font-bold">{stats.perempuan}</p>
-        </div>
-      </div>
-
-      {/* Filters & Export */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
-          <input
-            type="text"
-            placeholder="🔍 Cari nama / pekerjaan..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg md:col-span-2"
-          />
-
-          <select
-            value={filterDesa}
-            onChange={(e) => setFilterDesa(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          >
-            <option value="">Semua Desa</option>
-            {uniqueDesa.map((desa) => (
-              <option key={desa} value={desa}>
-                {desa}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filterKelompok}
-            onChange={(e) => setFilterKelompok(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          >
-            <option value="">Semua Kelompok</option>
-            {uniqueKelompok.map((kelompok) => (
-              <option key={kelompok} value={kelompok}>
-                {kelompok}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          >
-            <option value="all">Semua Status</option>
-            <option value="hadir">Sudah Hadir</option>
-            <option value="belum">Belum Hadir</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-          <p className="text-sm text-gray-600">
-            Menampilkan <strong>{filteredParticipants.length}</strong> dari{' '}
-            <strong>{participants.length}</strong> peserta
-          </p>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => exportToExcel(filteredParticipants, 'data-peserta')}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              icon={<Wrench className="h-4 w-4" />}
+              onClick={() => router.push('/admin/form-builder')}
             >
-              📥 Export Excel
-            </button>
-            <button
-              onClick={() => exportToCSV(filteredParticipants, 'data-peserta')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
-            >
-              📥 Export CSV
-            </button>
+              Form Builder
+            </Button>
+            <Button variant="secondary" icon={<LogOut className="h-4 w-4" />} onClick={handleLogout}>
+              Logout
+            </Button>
           </div>
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-left">
-            <tr>
-              <th className="p-3">Foto</th>
-              <th className="p-3">Nama</th>
-              <th className="p-3">Umur</th>
-              <th className="p-3">JK</th>
-              <th className="p-3">Desa</th>
-              <th className="p-3">Kelompok</th>
-              <th className="p-3">Status Presensi</th>
-              <th className="p-3">Tanggal Daftar</th>
-              <th className="p-3">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredParticipants.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="p-6 text-center text-gray-500">
-                  Tidak ada data yang cocok
-                </td>
-              </tr>
-            ) : (
-              filteredParticipants.map((p) => (
-                <tr key={p.id} className="border-t hover:bg-gray-50">
-                  <td className="p-3">
-                    {p.foto_formal_url ? (
-                      <div className="relative w-10 h-12">
-                        <Image
-                          src={p.foto_formal_url}
-                          alt={p.nama_lengkap}
-                          fill
-                          className="object-cover rounded"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-10 h-12 bg-gray-200 rounded flex items-center justify-center text-xs">
-                        N/A
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-3 font-semibold">{p.nama_lengkap}</td>
-                  <td className="p-3">{p.umur}</td>
-                  <td className="p-3">{p.jenis_kelamin === 'Laki-laki' ? 'L' : 'P'}</td>
-                  <td className="p-3">{p.desa || '-'}</td>
-                  <td className="p-3">{p.kelompok || '-'}</td>
-                  <td className="p-3">
-                    {(p.attendance_count || 0) > 0 ? (
-                      <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">
-                        ✓ Hadir
-                      </span>
-                    ) : (
-                      <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-semibold">
-                        Belum Hadir
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3 text-xs text-gray-500">
-                    {new Date(p.created_at).toLocaleDateString('id-ID')}
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setSelectedParticipant(p)}
-                        className="text-blue-600 hover:underline text-xs font-semibold"
-                      >
-                        Detail
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id, p.nama_lengkap)}
-                        className="text-red-600 hover:underline text-xs font-semibold"
-                      >
-                        Hapus
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+        {/* Loading */}
+        {loading && (
+          <Card>
+            <Spinner label="Memuat data peserta..." />
+          </Card>
+        )}
 
-      {/* Detail Modal */}
-      {selectedParticipant && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-          onClick={() => setSelectedParticipant(null)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Detail Peserta</h2>
-              <button
-                onClick={() => setSelectedParticipant(null)}
-                className="text-gray-500 hover:text-gray-800 text-xl"
-              >
-                ✕
-              </button>
+        {/* Error */}
+        {!loading && loadError && (
+          <Card>
+            <EmptyState
+              icon={<Inbox className="h-10 w-10" />}
+              title="Terjadi Kesalahan"
+              description="Data peserta gagal dimuat. Silakan coba lagi."
+              action={<Button onClick={fetchParticipants}>Coba Lagi</Button>}
+            />
+          </Card>
+        )}
+
+        {!loading && !loadError && (
+          <>
+            {/* Statistics */}
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {statCards.map((stat) => (
+                <Card key={stat.label} className="flex items-center gap-4">
+                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${stat.color}`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-gray-500">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  </div>
+                </Card>
+              ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex justify-center">
-                {selectedParticipant.foto_formal_url && (
-                  <div className="relative w-32 h-40">
-                    <Image
-                      src={selectedParticipant.foto_formal_url}
-                      alt={selectedParticipant.nama_lengkap}
-                      fill
-                      className="object-cover rounded-lg border-2 border-gray-300"
+            {/* Filters */}
+            <Card className="mb-6">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <div className="lg:col-span-1">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="search"
+                      placeholder="Cari nama / pekerjaan..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
                     />
                   </div>
-                )}
+                </div>
+
+                <Select value={filterDesa} onChange={(e) => setFilterDesa(e.target.value)}>
+                  <option value="">Semua Desa</option>
+                  {uniqueDesa.map((desa) => (
+                    <option key={desa} value={desa}>
+                      {desa}
+                    </option>
+                  ))}
+                </Select>
+
+                <Select value={filterKelompok} onChange={(e) => setFilterKelompok(e.target.value)}>
+                  <option value="">Semua Kelompok</option>
+                  {uniqueKelompok.map((kelompok) => (
+                    <option key={kelompok} value={kelompok}>
+                      {kelompok}
+                    </option>
+                  ))}
+                </Select>
+
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as 'all' | 'hadir' | 'belum')}
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="hadir">Sudah Hadir</option>
+                  <option value="belum">Belum Hadir</option>
+                </Select>
               </div>
 
-              <div className="md:col-span-2 space-y-2 text-sm">
-                <p>
-                  <strong>Nama:</strong> {selectedParticipant.nama_lengkap}
+              <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-600">
+                  Menampilkan <strong>{filteredParticipants.length}</strong> dari{' '}
+                  <strong>{participants.length}</strong> peserta
                 </p>
-                <p>
-                  <strong>Umur:</strong> {selectedParticipant.umur} tahun
-                </p>
-                <p>
-                  <strong>Jenis Kelamin:</strong> {selectedParticipant.jenis_kelamin}
-                </p>
-                <p>
-                  <strong>Daerah:</strong> {selectedParticipant.daerah || '-'}
-                </p>
-                <p>
-                  <strong>Desa:</strong> {selectedParticipant.desa || '-'}
-                </p>
-                <p>
-                  <strong>Kelompok:</strong> {selectedParticipant.kelompok || '-'}
-                </p>
-                <p>
-                  <strong>Dapukan:</strong> {selectedParticipant.dapukan || '-'}
-                </p>
-                <p>
-                  <strong>TB/BB:</strong> {selectedParticipant.tinggi_badan || '-'} cm /{' '}
-                  {selectedParticipant.berat_badan || '-'} kg
-                </p>
-                <p>
-                  <strong>Jumlah Saudara:</strong> {selectedParticipant.jumlah_saudara || '-'}
-                </p>
-                <p>
-                  <strong>Anak ke:</strong> {selectedParticipant.anak_ke || '-'}
-                </p>
-                <p>
-                  <strong>Pendidikan:</strong> {selectedParticipant.pendidikan_terakhir || '-'}
-                </p>
-                <p>
-                  <strong>Pekerjaan:</strong> {selectedParticipant.pekerjaan || '-'}
-                </p>
-                <p>
-                  <strong>Status:</strong> {selectedParticipant.status || '-'}
-                </p>
-                <p>
-                  <strong>Hobi:</strong> {selectedParticipant.hobi || '-'}
-                </p>
-                <p>
-                  <strong>Jumlah Scan Presensi:</strong>{' '}
-                  {selectedParticipant.attendance_count || 0}x
-                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<Download className="h-4 w-4" />}
+                    onClick={() => exportToExcel(filteredParticipants, 'data-peserta')}
+                  >
+                    Export Excel
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<Download className="h-4 w-4" />}
+                    onClick={() => exportToCSV(filteredParticipants, 'data-peserta')}
+                  >
+                    Export CSV
+                  </Button>
+                </div>
               </div>
+            </Card>
+
+            {/* Table / Empty States */}
+            {participants.length === 0 ? (
+              <Card>
+                <EmptyState title="Belum Ada Data" description="Belum ada peserta yang terdaftar." />
+              </Card>
+            ) : filteredParticipants.length === 0 ? (
+              <Card>
+                <EmptyState
+                  icon={<FilterX className="h-10 w-10" />}
+                  title="Tidak Ada Hasil"
+                  description="Tidak ditemukan data yang sesuai dengan filter."
+                  action={
+                    <Button variant="secondary" onClick={resetFilters}>
+                      Reset Filter
+                    </Button>
+                  }
+                />
+              </Card>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="p-3 text-left font-semibold text-gray-700">Foto</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">Nama</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">Umur</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">JK</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">Desa</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">Kelompok</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">Presensi</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">Tanggal</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredParticipants.map((p) => (
+                      <tr key={p.id} className="border-t border-gray-200 transition-colors hover:bg-gray-50">
+                        <td className="p-3">
+                          {p.foto_formal_url ? (
+                            <div className="relative h-11 w-9 overflow-hidden rounded-lg bg-gray-100">
+                              <Image
+                                src={p.foto_formal_url}
+                                alt={`Foto ${p.nama_lengkap}`}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex h-11 w-9 items-center justify-center rounded-lg bg-gray-100">
+                              <User className="h-4 w-4 text-gray-300" />
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 font-medium text-gray-900">{p.nama_lengkap}</td>
+                        <td className="p-3 text-gray-600">{p.umur}</td>
+                        <td className="p-3 text-gray-600">{p.jenis_kelamin === 'Laki-laki' ? 'L' : 'P'}</td>
+                        <td className="p-3 text-gray-600">{p.desa || '-'}</td>
+                        <td className="p-3 text-gray-600">{p.kelompok || '-'}</td>
+                        <td className="p-3">
+                          {(p.attendance_count || 0) > 0 ? (
+                            <Badge variant="success">Hadir</Badge>
+                          ) : (
+                            <Badge variant="warning">Belum Hadir</Badge>
+                          )}
+                        </td>
+                        <td className="p-3 text-xs text-gray-500">
+                          {new Date(p.created_at).toLocaleDateString('id-ID')}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => setSelectedParticipant(p)}
+                              aria-label={`Lihat detail ${p.nama_lengkap}`}
+                              className="rounded-lg p-1.5 text-gray-500 hover:bg-purple-50 hover:text-purple-600"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteTarget(p)}
+                              aria-label={`Hapus ${p.nama_lengkap}`}
+                              className="rounded-lg p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      {/* Detail Modal */}
+      <Modal
+        isOpen={!!selectedParticipant}
+        onClose={() => setSelectedParticipant(null)}
+        title="Detail Peserta"
+      >
+        {selectedParticipant && (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div className="flex justify-center sm:col-span-1">
+              {selectedParticipant.foto_formal_url ? (
+                <div className="relative aspect-[4/5] w-28 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
+                  <Image
+                    src={selectedParticipant.foto_formal_url}
+                    alt={`Foto formal ${selectedParticipant.nama_lengkap}`}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex aspect-[4/5] w-28 items-center justify-center rounded-xl bg-gray-100 sm:w-full">
+                  <User className="h-8 w-8 text-gray-300" />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 text-sm sm:col-span-2">
+              <p><span className="text-gray-500">Nama:</span> <span className="font-medium text-gray-900">{selectedParticipant.nama_lengkap}</span></p>
+              <p><span className="text-gray-500">Umur:</span> {selectedParticipant.umur} tahun</p>
+              <p><span className="text-gray-500">Jenis Kelamin:</span> {selectedParticipant.jenis_kelamin}</p>
+              <p><span className="text-gray-500">Daerah:</span> {selectedParticipant.daerah || '-'}</p>
+              <p><span className="text-gray-500">Desa:</span> {selectedParticipant.desa || '-'}</p>
+              <p><span className="text-gray-500">Kelompok:</span> {selectedParticipant.kelompok || '-'}</p>
+              <p><span className="text-gray-500">Dapukan:</span> {selectedParticipant.dapukan || '-'}</p>
+              <p><span className="text-gray-500">TB/BB:</span> {selectedParticipant.tinggi_badan || '-'} cm / {selectedParticipant.berat_badan || '-'} kg</p>
+              <p><span className="text-gray-500">Jumlah Saudara:</span> {selectedParticipant.jumlah_saudara || '-'}</p>
+              <p><span className="text-gray-500">Anak ke:</span> {selectedParticipant.anak_ke || '-'}</p>
+              <p><span className="text-gray-500">Pendidikan:</span> {selectedParticipant.pendidikan_terakhir || '-'}</p>
+              <p><span className="text-gray-500">Pekerjaan:</span> {selectedParticipant.pekerjaan || '-'}</p>
+              <p><span className="text-gray-500">Status:</span> {selectedParticipant.status || '-'}</p>
+              <p><span className="text-gray-500">Hobi:</span> {selectedParticipant.hobi || '-'}</p>
+              <p className="pt-2">
+                <span className="text-gray-500">Jumlah Scan Presensi:</span>{' '}
+                <Badge variant="info">{selectedParticipant.attendance_count || 0}x</Badge>
+              </p>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title="Hapus Data Peserta?"
+        description={`Data "${deleteTarget?.nama_lengkap}" akan dihapus permanen dan tidak dapat dikembalikan.`}
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

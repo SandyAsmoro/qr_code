@@ -6,6 +6,7 @@ import {
   ScanLine,
   CheckCircle2,
   RotateCcw,
+  Printer,
   User,
   MapPin,
   Ruler,
@@ -34,9 +35,13 @@ type ScannedParticipant = {
   tinggi_badan: number
   berat_badan: number
   anak_ke: number
+  kelompok: string
+  dapukan: string
+  status: string
   pendidikan_terakhir: string
   pekerjaan: string
   hobi: string
+  qr_code_url: string
 }
 
 const modeConfig: Record<ScanMode, { title: string; subtitle: string }> = {
@@ -142,66 +147,143 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
   if (scannedData) {
     return (
       <div className="mx-auto max-w-2xl">
-        {attendanceSuccess && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            Presensi berhasil dicatat
-          </div>
-        )}
-
-        <Card className="mb-4">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <div className="flex justify-center sm:col-span-1">
-              {scannedData.foto_formal_url ? (
-                <div className="relative aspect-[4/5] w-32 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
-                  <Image
-                    src={scannedData.foto_formal_url}
-                    alt={`Foto formal ${scannedData.nama_lengkap}`}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="flex aspect-[4/5] w-32 items-center justify-center rounded-xl bg-gray-100 sm:w-full">
-                  <User className="h-8 w-8 text-gray-300" />
-                </div>
-              )}
+        {/* Konten yang HANYA tampil di layar (tersembunyi saat print) */}
+        <div className="print:hidden">
+          {attendanceSuccess && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              Presensi berhasil dicatat
             </div>
+          )}
 
-            <div className="space-y-4 sm:col-span-2">
-              <div>
-                <p className="text-xs uppercase text-gray-500">Nama</p>
-                <p className="text-xl font-bold text-gray-900">{scannedData.nama_lengkap}</p>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  <Badge variant="info">{scannedData.umur} tahun</Badge>
-                  <Badge variant="info">{scannedData.jenis_kelamin}</Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {detailItems.map((item) => (
-                  <div key={item.label} className="flex items-start gap-2">
-                    <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-                    <div>
-                      <p className="text-xs uppercase text-gray-500">{item.label}</p>
-                      <p className="text-sm text-gray-700">{item.value}</p>
-                    </div>
+          <Card className="mb-4">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              <div className="flex justify-center sm:col-span-1">
+                {scannedData.foto_formal_url ? (
+                  <div className="relative aspect-[4/5] w-32 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
+                    <Image
+                      src={scannedData.foto_formal_url}
+                      alt={`Foto formal ${scannedData.nama_lengkap}`}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
-                ))}
+                ) : (
+                  <div className="flex aspect-[4/5] w-32 items-center justify-center rounded-xl bg-gray-100 sm:w-full">
+                    <User className="h-8 w-8 text-gray-300" />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4 sm:col-span-2">
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Nama</p>
+                  <p className="text-xl font-bold text-gray-900">{scannedData.nama_lengkap}</p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <Badge variant="info">{scannedData.umur} tahun</Badge>
+                    <Badge variant="info">{scannedData.jenis_kelamin}</Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {detailItems.map((item) => (
+                    <div key={item.label} className="flex items-start gap-2">
+                      <item.icon className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                      <div>
+                        <p className="text-xs uppercase text-gray-500">{item.label}</p>
+                        <p className="text-sm text-gray-700">{item.value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full"
-          icon={<RotateCcw className="h-4 w-4" />}
-          onClick={handleScanAgain}
-        >
-          Scan QR Code Lain
-        </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {mode === 'display' && (
+              <Button
+                variant="secondary"
+                size="lg"
+                className="flex-1"
+                icon={<Printer className="h-4 w-4" />}
+                onClick={() => window.print()}
+              >
+                Cetak Kartu ID
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              size="lg"
+              className="flex-1"
+              icon={<RotateCcw className="h-4 w-4" />}
+              onClick={handleScanAgain}
+            >
+              Scan QR Code Lain
+            </Button>
+          </div>
+        </div>
+
+        {/* Kartu ID — HANYA tampil saat print, tersembunyi di layar */}
+        <div className="hidden print:flex print:h-[130mm] print:w-[90mm] print:flex-col print:overflow-hidden print:bg-white print:text-black">
+          <div className="bg-purple-600 px-3 py-2 text-center text-white">
+            <p className="text-[9px] font-semibold uppercase tracking-wide">Kartu Peserta</p>
+          </div>
+
+          <div className="flex flex-1 flex-col items-center px-3 pt-3">
+            {scannedData.foto_formal_url && (
+              <div className="relative h-[45mm] w-[35mm] overflow-hidden rounded-md border border-gray-300">
+                <Image
+                  src={scannedData.foto_formal_url}
+                  alt={`Foto formal ${scannedData.nama_lengkap}`}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            )}
+
+            <p className="mt-2 text-center text-[13px] font-bold leading-tight">
+              {scannedData.nama_lengkap}
+            </p>
+            <p className="text-center text-[9px] text-gray-600">
+              {scannedData.umur} tahun · {scannedData.jenis_kelamin}
+            </p>
+
+            <div className="mt-2 w-full space-y-1 border-t border-gray-200 pt-2 text-[8.5px] leading-tight">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Desa</span>
+                <span className="font-medium">{scannedData.desa || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Kelompok</span>
+                <span className="font-medium">{scannedData.kelompok || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Dapukan</span>
+                <span className="font-medium">{scannedData.dapukan || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Status</span>
+                <span className="font-medium">{scannedData.status || '-'}</span>
+              </div>
+            </div>
+
+            {scannedData.qr_code_url && (
+              <div className="relative mt-2 h-[18mm] w-[18mm]">
+                <Image
+                  src={scannedData.qr_code_url}
+                  alt="QR Code peserta"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="bg-gray-100 px-3 py-1 text-center text-[7px] text-gray-500">
+            ID: {scannedData.id.slice(0, 8).toUpperCase()}
+          </div>
+        </div>
       </div>
     )
   }

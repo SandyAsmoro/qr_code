@@ -2,6 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Lock, AlertTriangle } from 'lucide-react'
+import Card from '@/components/ui/Card'
+import Input from '@/components/ui/Input'
+import Button from '@/components/ui/Button'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -29,7 +33,7 @@ export default function AdminLoginPage() {
       } else {
         setError(data.error || 'Password salah')
       }
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan, coba lagi')
     } finally {
       setLoading(false)
@@ -37,38 +41,40 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm"
-      >
-        <h1 className="text-2xl font-bold mb-6 text-center">🔐 Admin Login</h1>
-
-        <div className="mb-4">
-          <label className="block text-gray-700 font-bold mb-2">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoFocus
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-            placeholder="Masukkan password admin"
-          />
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+      <Card className="w-full max-w-sm">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50">
+            <Lock className="h-6 w-6 text-purple-600" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Admin Login</h1>
+          <p className="mt-1 text-sm text-gray-600">Masuk untuk mengelola data peserta</p>
         </div>
 
-        {error && (
-          <p className="text-red-500 text-sm mb-4">{error}</p>
-        )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            id="password"
+            type="password"
+            label="Password"
+            required
+            autoFocus
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Masukkan password admin"
+          />
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-2 px-4 rounded-lg"
-        >
-          {loading ? 'Memproses...' : 'Login'}
-        </button>
-      </form>
+          {error && (
+            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
+            {loading ? 'Memproses...' : 'Login'}
+          </Button>
+        </form>
+      </Card>
     </div>
   )
 }
