@@ -184,6 +184,15 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
   }
 
   const startScanner = () => {
+    // Safety check: jika ada scanner lama yang masih aktif, clear dulu
+    if (scannerRef.current) {
+      try {
+        scannerRef.current.clear()
+      } catch (err) {
+        console.warn('Warning clearing old scanner:', err)
+      }
+    }
+
     const scanner = new Html5QrcodeScanner(
       'qr-scanner',
       { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -197,23 +206,43 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
 
   useEffect(() => {
     startScanner()
+
     return () => {
-      scannerRef.current?.clear().catch(() => {})
+      // Cleanup scanner ketika component unmount atau mode berubah
+      if (scannerRef.current) {
+        scannerRef.current
+          .clear()
+          .catch((err) => console.error('Cleanup error:', err))
+          .finally(() => {
+            scannerRef.current = null
+          })
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
 
-  const handleScanAgain = () => {
+  const handleScanAgain = async () => {
+    // Clear scanner lama SEBELUM reset state untuk mencegah konflik instance
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.clear()
+      } catch (err) {
+        console.error('Error clearing scanner:', err)
+      }
+      scannerRef.current = null
+    }
+
     setScannedData(null)
     setAttendanceStatus(null)
     setScanError(null)
     setShowCardPreview(false)
     isProcessingRef.current = false
+
     // Tunda sampai React selesai re-render "SCANNER STATE" (div #qr-scanner
     // baru muncul di DOM setelah scannedData jadi null). Kalau startScanner()
     // dipanggil langsung di sini, html5-qrcode akan mencari elemen yang belum
     // ada di DOM dan melempar error.
-    setTimeout(startScanner, 0)
+    setTimeout(startScanner, 100)
   }
 
   const detailItems = scannedData

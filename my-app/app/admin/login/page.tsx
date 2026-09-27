@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Lock, AlertTriangle } from 'lucide-react'
+import { Lock, AlertTriangle, ArrowLeft } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -74,6 +75,16 @@ export default function AdminLoginPage() {
             {loading ? 'Memproses...' : 'Login'}
           </Button>
         </form>
+
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Link
+            href="/"
+            className="flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-purple-600 transition"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Kembali ke Form Registrasi
+          </Link>
+        </div>
       </Card>
     </div>
   )

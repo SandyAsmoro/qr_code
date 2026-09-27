@@ -188,7 +188,7 @@ export default function AdminDashboard() {
 
       return matchSearch && matchDaerah && matchDesa && matchKelompok && matchJenisKelamin && matchStatus
     })
-  }, [participants, searchQuery, filterDesa, filterKelompok, filterStatus])
+  }, [participants, searchQuery, filterDaerah, filterDesa, filterKelompok, filterJenisKelamin, filterStatus])
 
   const stats = useMemo(() => {
     const total = participants.length
@@ -319,50 +319,65 @@ export default function AdminDashboard() {
 
               {showFilters && (
                 <div className="mt-4 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-3 lg:grid-cols-5">
-                  <Select value={filterDaerah} onChange={(e) => setFilterDaerah(e.target.value)}>
-                    <option value="">Semua Daerah</option>
-                    {uniqueDaerah.map((daerah) => (
-                      <option key={daerah} value={daerah}>
-                        {daerah}
-                      </option>
-                    ))}
-                  </Select>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-gray-700">Daerah</label>
+                    <Select value={filterDaerah} onChange={(e) => setFilterDaerah(e.target.value)}>
+                      <option value="">Semua Daerah</option>
+                      {uniqueDaerah.map((daerah) => (
+                        <option key={daerah} value={daerah}>
+                          {daerah}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                  <Select value={filterDesa} onChange={(e) => setFilterDesa(e.target.value)}>
-                    <option value="">Semua Desa</option>
-                    {uniqueDesa.map((desa) => (
-                      <option key={desa} value={desa}>
-                        {desa}
-                      </option>
-                    ))}
-                  </Select>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-gray-700">Desa</label>
+                    <Select value={filterDesa} onChange={(e) => setFilterDesa(e.target.value)}>
+                      <option value="">Semua Desa</option>
+                      {uniqueDesa.map((desa) => (
+                        <option key={desa} value={desa}>
+                          {desa}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                  <Select value={filterKelompok} onChange={(e) => setFilterKelompok(e.target.value)}>
-                    <option value="">Semua Kelompok</option>
-                    {uniqueKelompok.map((kelompok) => (
-                      <option key={kelompok} value={kelompok}>
-                        {kelompok}
-                      </option>
-                    ))}
-                  </Select>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-gray-700">Kelompok</label>
+                    <Select value={filterKelompok} onChange={(e) => setFilterKelompok(e.target.value)}>
+                      <option value="">Semua Kelompok</option>
+                      {uniqueKelompok.map((kelompok) => (
+                        <option key={kelompok} value={kelompok}>
+                          {kelompok}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
 
-                  <Select
-                    value={filterJenisKelamin}
-                    onChange={(e) => setFilterJenisKelamin(e.target.value)}
-                  >
-                    <option value="">Semua Jenis Kelamin</option>
-                    <option value="Laki-laki">Laki-laki</option>
-                    <option value="Perempuan">Perempuan</option>
-                  </Select>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-gray-700">Jenis Kelamin</label>
+                    <Select
+                      value={filterJenisKelamin}
+                      onChange={(e) => setFilterJenisKelamin(e.target.value)}
+                    >
+                      <option value="">Semua Jenis Kelamin</option>
+                      <option value="Laki-laki">Laki-laki</option>
+                      <option value="Perempuan">Perempuan</option>
+                    </Select>
+                  </div>
 
-                  <Select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as 'all' | 'hadir' | 'belum')}
-                  >
-                    <option value="all">Semua Status</option>
-                    <option value="hadir">Sudah Hadir</option>
-                    <option value="belum">Belum Hadir</option>
-                  </Select>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-gray-700">Status</label>
+                    <Select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value as 'all' | 'hadir' | 'belum')}
+                    >
+                      <option value="all">Semua Status</option>
+                      <option value="hadir">Sudah Hadir</option>
+                      <option value="belum">Belum Hadir</option>
+                    </Select>
+                  </div>
                 </div>
               )}
 
