@@ -5,9 +5,9 @@ export async function POST(request: NextRequest) {
     const { password } = await request.json()
 
     // Sementara
-    console.log('Password dari input:', JSON.stringify(password))
-    console.log('Password dari env:', JSON.stringify(process.env.ADMIN_PASSWORD))
-    console.log('Match?', password === process.env.ADMIN_PASSWORD)
+    // console.log('Password dari input:', JSON.stringify(password))
+    // console.log('Password dari env:', JSON.stringify(process.env.ADMIN_PASSWORD))
+    // console.log('Match?', password === process.env.ADMIN_PASSWORD)
     // sementara
 
     if (password === process.env.ADMIN_PASSWORD) {

@@ -29,8 +29,7 @@ export default function AdminLoginPage() {
       const data = await response.json()
 
       if (data.success) {
-        router.push('/admin')
-        router.refresh()
+        window.location.href = '/admin'
       } else {
         setError(data.error || 'Password salah')
       }
