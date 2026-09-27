@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { exportToExcel, exportToCSV } from '@/lib/exportData'
+import { downloadCardAsImage } from '@/lib/downloadCard'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
@@ -37,6 +38,7 @@ import Spinner from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import IdCard from '@/components/IdCard'
 
 type Participant = {
   id: string
@@ -58,6 +60,7 @@ type Participant = {
   status: string
   pendidikan_terakhir: string
   pekerjaan: string
+  qr_code_url?: string
   attendance_count?: number
 }
 
@@ -78,6 +81,23 @@ export default function AdminDashboard() {
   const [deleteTarget, setDeleteTarget] = useState<Participant | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [downloadingCard, setDownloadingCard] = useState(false)
+  const idCardRef = useRef<HTMLDivElement>(null)
+
+  const handleDownloadCard = async () => {
+    if (!idCardRef.current || !selectedParticipant) return
+    setDownloadingCard(true)
+    try {
+      await downloadCardAsImage(
+        idCardRef.current,
+        `kartu-peserta-${selectedParticipant.nama_lengkap}`
+      )
+    } catch (error) {
+      console.error('Gagal mengunduh kartu:', error)
+    } finally {
+      setDownloadingCard(false)
+    }
+  }
 
   useEffect(() => {
     fetchParticipants()
@@ -583,6 +603,28 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-500">Jumlah Scan Presensi</p>
               <Badge variant="info">{selectedParticipant.attendance_count || 0}x</Badge>
             </div>
+
+            {selectedParticipant.qr_code_url && (
+              <div className="mt-5 flex w-full flex-col items-center border-t border-gray-100 pt-5">
+                <p className="mb-3 text-sm text-gray-500">Kartu ID Peserta</p>
+                <IdCard
+                  ref={idCardRef}
+                  nama={selectedParticipant.nama_lengkap}
+                  participantCode={selectedParticipant.participant_code}
+                  qrCodeUrl={selectedParticipant.qr_code_url}
+                  daerah={selectedParticipant.daerah}
+                />
+                <Button
+                  variant="primary"
+                  className="mt-4 w-full"
+                  icon={<Download className="h-4 w-4" />}
+                  loading={downloadingCard}
+                  onClick={handleDownloadCard}
+                >
+                  Download Kartu ID
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

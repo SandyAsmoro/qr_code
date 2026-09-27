@@ -1,16 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
 import { Camera, X, CheckCircle2, Download, RotateCcw, Mail, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { generateQRCode, downloadQRCode } from '@/lib/qrcode'
+import { generateQRCode } from '@/lib/qrcode'
 import { generateQRCodeData } from '@/lib/encryption'
+import { downloadCardAsImage } from '@/lib/downloadCard'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Textarea from '@/components/ui/Textarea'
+import IdCard from '@/components/IdCard'
 
 type FormDataType = {
   nama_lengkap: string
@@ -71,6 +73,20 @@ export default function RegistrationForm() {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [submittedData, setSubmittedData] = useState<any>(null)
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle')
+  const [downloadingCard, setDownloadingCard] = useState(false)
+  const idCardRef = useRef<HTMLDivElement>(null)
+
+  const handleDownloadCard = async () => {
+    if (!idCardRef.current || !submittedData) return
+    setDownloadingCard(true)
+    try {
+      await downloadCardAsImage(idCardRef.current, `kartu-peserta-${submittedData.nama_lengkap}`)
+    } catch (error) {
+      console.error('Gagal mengunduh kartu:', error)
+    } finally {
+      setDownloadingCard(false)
+    }
+  }
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -302,10 +318,14 @@ export default function RegistrationForm() {
         </Card>
 
         <Card className="mb-4 flex flex-col items-center">
-          <p className="mb-3 text-sm text-gray-600">QR Code untuk presensi:</p>
-          <div className="overflow-hidden rounded-xl border border-gray-200">
-            <img src={qrCode} alt="QR Code peserta" className="h-56 w-56" />
-          </div>
+          <p className="mb-3 text-sm text-gray-600">Kartu ID Peserta:</p>
+          <IdCard
+            ref={idCardRef}
+            nama={submittedData.nama_lengkap}
+            participantCode={submittedData.participant_code}
+            qrCodeUrl={qrCode}
+            daerah={submittedData.daerah}
+          />
         </Card>
 
         {/* Email status */}
@@ -340,9 +360,10 @@ export default function RegistrationForm() {
             variant="primary"
             className="flex-1"
             icon={<Download className="h-4 w-4" />}
-            onClick={() => downloadQRCode(qrCode, `qr-${submittedData.nama_lengkap}`)}
+            loading={downloadingCard}
+            onClick={handleDownloadCard}
           >
-            Download QR Code
+            Download Kartu ID
           </Button>
           <Button
             variant="secondary"
