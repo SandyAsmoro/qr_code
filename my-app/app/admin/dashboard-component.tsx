@@ -40,6 +40,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 type Participant = {
   id: string
+  participant_code: string
   created_at: string
   nama_lengkap: string
   umur: number
@@ -172,6 +173,7 @@ export default function AdminDashboard() {
       const matchSearch =
         searchQuery === '' ||
         p.nama_lengkap.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.participant_code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.pekerjaan?.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchDaerah = filterDaerah === '' || p.daerah === filterDaerah
@@ -283,7 +285,7 @@ export default function AdminDashboard() {
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <input
                     type="search"
-                    placeholder="Cari nama / pekerjaan..."
+                    placeholder="Cari nama / kode peserta / pekerjaan..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20"
@@ -415,6 +417,7 @@ export default function AdminDashboard() {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="p-3 text-left font-semibold text-gray-700">Foto</th>
+                      <th className="p-3 text-left font-semibold text-gray-700">Kode</th>
                       <th className="p-3 text-left font-semibold text-gray-700">Nama</th>
                       <th className="p-3 text-left font-semibold text-gray-700">Umur</th>
                       <th className="p-3 text-left font-semibold text-gray-700">JK</th>
@@ -442,6 +445,9 @@ export default function AdminDashboard() {
                               <User className="h-4 w-4 text-gray-300" />
                             </div>
                           )}
+                        </td>
+                        <td className="p-3 font-mono text-xs font-semibold text-purple-600">
+                          {p.participant_code}
                         </td>
                         <td className="p-3 font-medium text-gray-900">{p.nama_lengkap}</td>
                         <td className="p-3 text-gray-600">{p.umur}</td>
@@ -510,6 +516,7 @@ export default function AdminDashboard() {
               {selectedParticipant.nama_lengkap}
             </p>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
+              <Badge variant="info">{selectedParticipant.participant_code}</Badge>
               <Badge variant="info">{selectedParticipant.umur} tahun</Badge>
               <Badge variant="info">{selectedParticipant.jenis_kelamin}</Badge>
               {(selectedParticipant.attendance_count || 0) > 0 ? (

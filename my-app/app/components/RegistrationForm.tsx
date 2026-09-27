@@ -32,8 +32,9 @@ type FormDataType = {
 }
 
 const PENDIDIKAN_OPTIONS = ['SD', 'SMP', 'SMA', 'D1', 'D2', 'D3', 'S1', 'S2', 'S3']
-const STATUS_OPTIONS = ['Belum Menikah', 'Menikah', 'Cerai']
+const STATUS_OPTIONS = ['Belum Menikah', 'Duda', 'Janda']
 const JENIS_KELAMIN_OPTIONS = ['Laki-laki', 'Perempuan']
+const DAERAH_OPTIONS = ['Kediri Kota', 'Kediri Barat', 'Kediri Selatan 1']
 
 const initialFormData: FormDataType = {
   nama_lengkap: '',
@@ -160,6 +161,7 @@ export default function RegistrationForm() {
     }
     if (!formData.umur) errors.umur = 'Amal Sholih Diisi'
     if (!formData.jenis_kelamin) errors.jenis_kelamin = 'Amal Sholih Diisi'
+    if (!formData.daerah) errors.daerah = 'Amal Sholih Diisi'
     if (!fotoFile) errors.foto = 'Amal Sholih Diisi'
 
     setFieldErrors(errors)
@@ -274,6 +276,10 @@ export default function RegistrationForm() {
                 <p className="font-semibold text-gray-900">{submittedData.nama_lengkap}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs uppercase text-gray-500">Kode Peserta</p>
+                  <p className="font-semibold text-purple-600">{submittedData.participant_code}</p>
+                </div>
                 <div>
                   <p className="text-xs uppercase text-gray-500">Umur</p>
                   <p className="text-gray-700">{submittedData.umur} tahun</p>
@@ -420,7 +426,6 @@ export default function RegistrationForm() {
             id="status"
             name="status"
             label="Status"
-            required
             value={formData.status}
             onChange={handleChange}
           >
@@ -438,20 +443,24 @@ export default function RegistrationForm() {
       <Card>
         <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Lokasi</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input
+          <Select
             id="daerah"
             name="daerah"
             label="Daerah"
             required
             value={formData.daerah}
             onChange={handleChange}
-            placeholder="Contoh: Kecamatan Semen"
-          />
+            error={fieldErrors.daerah}
+          >
+            <option value="">-- Pilih --</option>
+            <option value="Kediri Kota">Kediri Kota</option>
+            <option value="Kediri Barat">Kediri Barat</option>
+            <option value="Kediri Selatan 1">Kediri Selatan 1</option>
+          </Select>
           <Input
             id="desa"
             name="desa"
             label="Desa"
-            required
             value={formData.desa}
             onChange={handleChange}
             placeholder="Contoh: Desa Semen"
@@ -460,7 +469,6 @@ export default function RegistrationForm() {
             id="kelompok"
             name="kelompok"
             label="Kelompok"
-            required
             value={formData.kelompok}
             onChange={handleChange}
             placeholder="Contoh: Kelompok A"
@@ -469,7 +477,6 @@ export default function RegistrationForm() {
             id="dapukan"
             name="dapukan"
             label="Dapukan"
-            required
             value={formData.dapukan}
             onChange={handleChange}
             placeholder="Contoh: Dapukan 1"
@@ -487,7 +494,6 @@ export default function RegistrationForm() {
             type="number"
             step="0.1"
             label="Tinggi Badan (cm)"
-            required
             value={formData.tinggi_badan}
             onChange={handleChange}
             placeholder="Contoh: 175"
@@ -498,7 +504,6 @@ export default function RegistrationForm() {
             type="number"
             step="0.1"
             label="Berat Badan (kg)"
-            required
             value={formData.berat_badan}
             onChange={handleChange}
             placeholder="Contoh: 70"
@@ -517,7 +522,6 @@ export default function RegistrationForm() {
             name="jumlah_saudara"
             type="number"
             label="Jumlah Saudara"
-            required
             value={formData.jumlah_saudara}
             onChange={handleChange}
             placeholder="Contoh: 3"
@@ -527,7 +531,6 @@ export default function RegistrationForm() {
             name="anak_ke"
             type="number"
             label="Anak ke"
-            required
             value={formData.anak_ke}
             onChange={handleChange}
             placeholder="Contoh: 1"
@@ -545,7 +548,6 @@ export default function RegistrationForm() {
             id="pendidikan_terakhir"
             name="pendidikan_terakhir"
             label="Pendidikan Terakhir"
-            required
             value={formData.pendidikan_terakhir}
             onChange={handleChange}
           >
@@ -560,7 +562,6 @@ export default function RegistrationForm() {
             id="pekerjaan"
             name="pekerjaan"
             label="Pekerjaan"
-            required
             value={formData.pekerjaan}
             onChange={handleChange}
             placeholder="Contoh: Karyawan Swasta"
@@ -577,7 +578,6 @@ export default function RegistrationForm() {
             id="hobi"
             name="hobi"
             label="Hobi"
-            required
             rows={3}
             value={formData.hobi}
             onChange={handleChange}

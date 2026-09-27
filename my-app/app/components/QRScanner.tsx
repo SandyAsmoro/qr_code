@@ -5,6 +5,7 @@ import Image from 'next/image'
 import {
   ScanLine,
   CheckCircle2,
+  AlertTriangle,
   RotateCcw,
   Printer,
   IdCard,
@@ -28,6 +29,7 @@ type ScanMode = 'display' | 'attendance'
 
 type ScannedParticipant = {
   id: string
+  participant_code: string
   nama_lengkap: string
   umur: number
   jenis_kelamin: string
@@ -66,6 +68,7 @@ function IDCardVisual({ data }: { data: ScannedParticipant }) {
     <div className="flex h-[130mm] w-[90mm] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-sm">
       <div className="bg-purple-600 px-3 py-2 text-center text-white">
         <p className="text-[9px] font-semibold uppercase tracking-wide">Kartu Peserta</p>
+        <p className="text-[11px] font-bold tracking-wider">{data.participant_code}</p>
       </div>
 
       <div className="flex flex-1 flex-col items-center px-3 pt-3">
@@ -112,7 +115,7 @@ function IDCardVisual({ data }: { data: ScannedParticipant }) {
       </div>
 
       <div className="bg-gray-100 px-3 py-1 text-center text-[7px] text-gray-500">
-        ID: {data.id.slice(0, 8).toUpperCase()}
+        Kode: {data.participant_code}
       </div>
     </div>
   )
@@ -120,17 +123,23 @@ function IDCardVisual({ data }: { data: ScannedParticipant }) {
 
 export default function QRScanner({ mode }: { mode: ScanMode }) {
   const scannerRef = useRef<Html5QrcodeScanner | null>(null)
+  const isProcessingRef = useRef(false)
   const [scannedData, setScannedData] = useState<ScannedParticipant | null>(null)
   const [loading, setLoading] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
-  const [attendanceSuccess, setAttendanceSuccess] = useState(false)
+  const [attendanceStatus, setAttendanceStatus] = useState<'success' | 'duplicate' | null>(null)
   const [showCardPreview, setShowCardPreview] = useState(false)
 
   const handleScanSuccess = async (decodedText: string) => {
+    // Cegah frame kamera berikutnya memicu proses ganda untuk QR yang sama
+    if (isProcessingRef.current) return
+    isProcessingRef.current = true
+
     const participantId = parseQRCodeData(decodedText)
 
     if (!participantId) {
       setScanError('QR Code tidak valid')
+      isProcessingRef.current = false
       return
     }
 
@@ -151,8 +160,16 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
           .from('attendance')
           .insert([{ participant_id: participantId, status: 'present' }])
 
-        if (attendanceError) throw attendanceError
-        setAttendanceSuccess(true)
+        if (attendanceError) {
+          // Kode 23505 = pelanggaran unique constraint → peserta sudah pernah presensi
+          if (attendanceError.code === '23505') {
+            setAttendanceStatus('duplicate')
+          } else {
+            throw attendanceError
+          }
+        } else {
+          setAttendanceStatus('success')
+        }
       }
 
       setScannedData(data)
@@ -162,6 +179,7 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
       setScanError('Data peserta tidak ditemukan')
     } finally {
       setLoading(false)
+      isProcessingRef.current = false
     }
   }
 
@@ -187,10 +205,15 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
 
   const handleScanAgain = () => {
     setScannedData(null)
-    setAttendanceSuccess(false)
+    setAttendanceStatus(null)
     setScanError(null)
     setShowCardPreview(false)
-    startScanner()
+    isProcessingRef.current = false
+    // Tunda sampai React selesai re-render "SCANNER STATE" (div #qr-scanner
+    // baru muncul di DOM setelah scannedData jadi null). Kalau startScanner()
+    // dipanggil langsung di sini, html5-qrcode akan mencari elemen yang belum
+    // ada di DOM dan melempar error.
+    setTimeout(startScanner, 0)
   }
 
   const detailItems = scannedData
@@ -214,10 +237,17 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
       <div className="mx-auto max-w-2xl">
         {/* Konten yang HANYA tampil di layar (tersembunyi saat print) */}
         <div className="print:hidden">
-          {attendanceSuccess && (
+          {attendanceStatus === 'success' && (
             <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               Presensi berhasil dicatat
+            </div>
+          )}
+
+          {attendanceStatus === 'duplicate' && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm font-medium text-orange-700">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              Peserta ini sudah melakukan presensi sebelumnya
             </div>
           )}
 
@@ -225,7 +255,7 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
               <div className="flex justify-center sm:col-span-1">
                 {scannedData.foto_formal_url ? (
-                  <div className="relative aspect-[4/5] w-32 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
+                  <div className="relative aspect-[4/6] w-32 overflow-hidden rounded-xl bg-gray-100 sm:w-full">
                     <Image
                       src={scannedData.foto_formal_url}
                       alt={`Foto formal ${scannedData.nama_lengkap}`}
@@ -234,7 +264,7 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
                     />
                   </div>
                 ) : (
-                  <div className="flex aspect-[4/5] w-32 items-center justify-center rounded-xl bg-gray-100 sm:w-full">
+                  <div className="flex aspect-[4/6] w-32 items-center justify-center rounded-xl bg-gray-100 sm:w-full">
                     <User className="h-8 w-8 text-gray-300" />
                   </div>
                 )}
@@ -245,6 +275,7 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
                   <p className="text-xs uppercase text-gray-500">Nama</p>
                   <p className="text-xl font-bold text-gray-900">{scannedData.nama_lengkap}</p>
                   <div className="mt-1 flex flex-wrap gap-2">
+                    <Badge variant="info">{scannedData.participant_code}</Badge>
                     <Badge variant="info">{scannedData.umur} tahun</Badge>
                     <Badge variant="info">{scannedData.jenis_kelamin}</Badge>
                   </div>
