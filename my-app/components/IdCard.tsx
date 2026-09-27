@@ -18,30 +18,28 @@ type CardTheme = {
 }
 
 /**
- * Palet warna kartu per daerah:
- * - Kediri Barat -> Merah
- * - Kediri Kota -> Biru
- * - Kediri Selatan 1 -> Hijau
- * Daerah lain / tidak dikenali jatuh ke tema biru (default).
+ * Tema warna berdasarkan daerah peserta.
  */
 const DAERAH_THEMES: Record<string, CardTheme> = {
   'Kediri Barat': {
-    dark: '#8a1c1c',
-    light: '#ef5350',
-    pillBg: '#fbe4e4',
-    text: '#8a1c1c',
+    dark: '#8A1C1C',
+    light: '#EF5350',
+    pillBg: '#FBE4E4',
+    text: '#8A1C1C',
   },
+
   'Kediri Kota': {
-    dark: '#0c3a86',
-    light: '#3fa9f5',
-    pillBg: '#e3f1fd',
-    text: '#0c3a86',
+    dark: '#0C3A86',
+    light: '#3FA9F5',
+    pillBg: '#E3F1FD',
+    text: '#0C3A86',
   },
+
   'Kediri Selatan 1': {
-    dark: '#146c2e',
-    light: '#4ade80',
-    pillBg: '#e2f6e9',
-    text: '#146c2e',
+    dark: '#146C2E',
+    light: '#4ADE80',
+    pillBg: '#E2F6E9',
+    text: '#146C2E',
   },
 }
 
@@ -50,97 +48,251 @@ const DEFAULT_THEME: CardTheme = DAERAH_THEMES['Kediri Kota']
 const getTheme = (daerah?: string): CardTheme =>
   (daerah && DAERAH_THEMES[daerah]) || DEFAULT_THEME
 
-/**
- * Kartu ID peserta bergaya lanyard badge (nama, QR code, ID peserta)
- * Desain mengikuti referensi: header bergelombang dengan slot lanyard,
- * body putih berisi nama + QR + ID peserta, footer bergelombang.
- * Warna kartu menyesuaikan daerah peserta.
- */
 const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
-  ({ nama, participantCode, qrCodeUrl, daerah, eventLabel = 'ID PESERTA' }, ref) => {
+  (
+    {
+      nama,
+      participantCode,
+      qrCodeUrl,
+      daerah,
+      eventLabel = 'ID PESERTA',
+    },
+    ref
+  ) => {
     const theme = getTheme(daerah)
 
     return (
       <div
         ref={ref}
-        className="relative mx-auto aspect-[82/105] w-full max-w-[320px] overflow-hidden rounded-[26px] bg-white shadow-xl ring-1 ring-black/5"
+        className="
+          relative mx-auto
+          aspect-[82/105]
+          w-full max-w-[320px]
+          overflow-hidden
+          rounded-[20px]
+          bg-white
+          shadow-xl
+          ring-1 ring-black/10
+        "
+        style={{
+          fontFamily:
+            'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+        }}
       >
-        {/* ===== Header wave ===== */}
+        {/* =====================================================
+            HEADER
+        ====================================================== */}
         <svg
-          className="absolute left-0 top-0 z-0 h-[27%] w-full"
-          viewBox="0 0 400 210"
+          className="absolute left-0 top-0 z-0 h-[21%] w-full"
+          viewBox="0 0 400 165"
           preserveAspectRatio="none"
+          aria-hidden="true"
         >
+          {/* Light wave */}
           <path
-            d="M0,0 H400 V95 C330,170 270,60 195,100 C120,140 70,45 0,100 Z"
+            d="
+              M0,0
+              H400
+              V92
+              C340,138 282,72 218,91
+              C150,112 95,46 0,94
+              Z
+            "
             fill={theme.light}
           />
+
+          {/* Dark wave */}
           <path
-            d="M0,0 H400 V70 C320,155 255,45 185,85 C110,125 55,25 0,75 Z"
+            d="
+              M0,0
+              H400
+              V68
+              C330,118 275,54 210,75
+              C140,98 88,28 0,72
+              Z
+            "
             fill={theme.dark}
           />
         </svg>
 
         {/* Lanyard slot */}
-        <div className="absolute left-1/2 top-[14px] z-10 h-[18px] w-[92px] -translate-x-1/2 rounded-full bg-white" />
+        {/* <div
+          className="
+            absolute
+            left-1/2
+            top-[14px]
+            z-20
+            h-[17px]
+            w-[82px]
+            -translate-x-1/2
+            rounded-full
+            bg-white
+            shadow-[0_1px_3px_rgba(0,0,0,0.08)]
+          "
+        /> */}
 
-        {/* ===== Footer wave ===== */}
+        {/* =====================================================
+            FOOTER WAVE
+        ====================================================== */}
         <svg
-          className="absolute bottom-0 left-0 z-0 h-[16%] w-full"
-          viewBox="0 0 400 110"
+          className="absolute bottom-0 left-0 z-0 h-[13%] w-full"
+          viewBox="0 0 400 105"
           preserveAspectRatio="none"
+          aria-hidden="true"
         >
+          {/* Dark base */}
           <path
-            d="M0,110 V55 C90,15 140,80 230,42 C300,12 350,58 400,32 V110 Z"
+            d="
+              M0,105
+              V57
+              C90,28 145,73 225,48
+              C300,24 350,61 400,39
+              V105
+              Z
+            "
             fill={theme.dark}
           />
+
+          {/* Gold accent */}
           <path
-            d="M0,110 V78 C100,40 150,98 240,60 C310,32 360,75 400,50 V110 Z"
-            fill={theme.light}
-          />
-          <path
-            d="M0,66 C100,28 150,88 240,50 C310,22 360,68 400,44"
-            stroke="#d9a441"
+            d="
+              M0,66
+              C92,39 148,80 230,55
+              C300,34 352,70 400,47
+            "
+            stroke="#D9A441"
             strokeWidth="4"
             fill="none"
           />
+
+          {/* Light footer */}
+          <path
+            d="
+              M0,105
+              V79
+              C98,53 151,91 238,67
+              C310,47 360,78 400,56
+              V105
+              Z
+            "
+            fill={theme.light}
+          />
         </svg>
 
-        {/* ===== Content ===== */}
-        <div className="relative z-10 flex h-full flex-col items-center px-5 pb-6 pt-[74px] text-center">
-          <h3
-            className="min-h-[3.2em] break-words text-[19px] font-extrabold leading-tight"
-            style={{ color: theme.text }}
-          >
-            {nama}
-          </h3>
+        {/* =====================================================
+            CONTENT
+        ====================================================== */}
+        <div
+          className="
+            relative
+            z-10
+            flex
+            h-full
+            flex-col
+            items-center
+            px-[18px]
+            pt-[78px]
+            pb-[52px]
+            text-center
+          "
+        >
+          {/* Nama */}
+          <div className="flex min-h-[46px] w-full items-center justify-center">
+            <h3
+              className="
+                max-w-[92%]
+                break-words
+                text-[42px]
+                capitalize
+                font-extrabold
+                leading-[1.12]
+                tracking-[-0.02em]
+              "
+              style={{
+                color: theme.text,
+              }}
+            >
+              {nama}
+            </h3>
+          </div>
 
-          <div className="mt-4 flex flex-1 items-center justify-center">
-            <div className="rounded-xl border border-gray-100 bg-white p-2 shadow-sm">
+          {/* QR CODE */}
+          <div className="mt-[15px]">
+            <div
+              className="
+                rounded-[18px]
+                border
+                border-gray-200
+                bg-white
+                p-[9px]
+                shadow-[0_4px_14px_rgba(0,0,0,0.08)]
+              "
+            >
               {qrCodeUrl ? (
                 <img
                   src={qrCodeUrl}
                   alt={`QR Code ${nama}`}
-                  className="h-32 w-32 object-contain"
+                  className="
+                    block
+                    h-[136px]
+                    w-[136px]
+                    object-contain
+                  "
                   crossOrigin="anonymous"
                 />
               ) : (
-                <div className="h-32 w-32 animate-pulse rounded bg-gray-100" />
+                <div
+                  className="
+                    h-[136px]
+                    w-[136px]
+                    animate-pulse
+                    rounded-lg
+                    bg-gray-100
+                  "
+                />
               )}
             </div>
           </div>
 
+          {/* ID PESERTA */}
           <div
-            className="mb-6 w-full rounded-2xl px-4 py-2.5"
-            style={{ backgroundColor: theme.pillBg }}
+            className="
+              mt-[15px]
+              w-full
+              rounded-[17px]
+              px-[14px]
+              py-[9px]
+            "
+            style={{
+              backgroundColor: theme.pillBg,
+            }}
           >
             <p
-              className="text-[9px] font-semibold tracking-[0.25em]"
-              style={{ color: theme.text }}
+              className="
+                text-[8px]
+                font-bold
+                uppercase
+                tracking-[0.28em]
+              "
+              style={{
+                color: theme.text,
+              }}
             >
               {eventLabel}
             </p>
-            <p className="mt-0.5 text-base font-extrabold tracking-wide" style={{ color: theme.text }}>
+
+            <p
+              className="
+                mt-[2px]
+                text-[18px]
+                font-black
+                leading-none
+                tracking-[0.04em]
+              "
+              style={{
+                color: theme.text,
+              }}
+            >
               {participantCode}
             </p>
           </div>
