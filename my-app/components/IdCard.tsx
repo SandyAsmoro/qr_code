@@ -43,10 +43,17 @@ const DAERAH_THEMES: Record<string, CardTheme> = {
   },
 }
 
-const DEFAULT_THEME: CardTheme = DAERAH_THEMES['Kediri Kota']
+const DEFAULT_THEME: CardTheme =
+  DAERAH_THEMES['Kediri Kota']
 
-const getTheme = (daerah?: string): CardTheme =>
-  (daerah && DAERAH_THEMES[daerah]) || DEFAULT_THEME
+const getTheme = (
+  daerah?: string
+): CardTheme => {
+  return (
+    (daerah && DAERAH_THEMES[daerah]) ||
+    DEFAULT_THEME
+  )
+}
 
 const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
   (
@@ -64,15 +71,19 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
     return (
       <div
         ref={ref}
+        data-id-card="true"
         className="
-          relative mx-auto
+          relative
+          mx-auto
           aspect-[82/105]
-          w-full max-w-[320px]
+          w-full
+          max-w-[320px]
           overflow-hidden
           rounded-[20px]
           bg-white
           shadow-xl
-          ring-1 ring-black/10
+          ring-1
+          ring-black/10
         "
         style={{
           fontFamily:
@@ -82,13 +93,20 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
         {/* =====================================================
             HEADER
         ====================================================== */}
+
         <svg
-          className="absolute left-0 top-0 z-0 h-[21%] w-full"
+          className="
+            absolute
+            left-0
+            top-0
+            z-0
+            h-[21%]
+            w-full
+          "
           viewBox="0 0 400 165"
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          {/* Light wave */}
           <path
             d="
               M0,0
@@ -101,7 +119,6 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             fill={theme.light}
           />
 
-          {/* Dark wave */}
           <path
             d="
               M0,0
@@ -115,32 +132,23 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
           />
         </svg>
 
-        {/* Lanyard slot */}
-        {/* <div
+        {/* =====================================================
+            FOOTER
+        ====================================================== */}
+
+        <svg
           className="
             absolute
-            left-1/2
-            top-[14px]
-            z-20
-            h-[17px]
-            w-[82px]
-            -translate-x-1/2
-            rounded-full
-            bg-white
-            shadow-[0_1px_3px_rgba(0,0,0,0.08)]
+            bottom-0
+            left-0
+            z-0
+            h-[13%]
+            w-full
           "
-        /> */}
-
-        {/* =====================================================
-            FOOTER WAVE
-        ====================================================== */}
-        <svg
-          className="absolute bottom-0 left-0 z-0 h-[13%] w-full"
           viewBox="0 0 400 105"
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          {/* Dark base */}
           <path
             d="
               M0,105
@@ -153,7 +161,6 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             fill={theme.dark}
           />
 
-          {/* Gold accent */}
           <path
             d="
               M0,66
@@ -165,7 +172,6 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
             fill="none"
           />
 
-          {/* Light footer */}
           <path
             d="
               M0,105
@@ -182,6 +188,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
         {/* =====================================================
             CONTENT
         ====================================================== */}
+
         <div
           className="
             relative
@@ -197,7 +204,16 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
           "
         >
           {/* Nama */}
-          <div className="flex min-h-[46px] w-full items-center justify-center">
+
+          <div
+            className="
+              flex
+              min-h-[46px]
+              w-full
+              items-center
+              justify-center
+            "
+          >
             <h3
               className="
                 max-w-[92%]
@@ -217,6 +233,7 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
           </div>
 
           {/* QR CODE */}
+
           <div className="mt-[15px]">
             <div
               className="
@@ -243,18 +260,25 @@ const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
               ) : (
                 <div
                   className="
+                    flex
                     h-[136px]
                     w-[136px]
-                    animate-pulse
+                    items-center
+                    justify-center
                     rounded-lg
                     bg-gray-100
+                    text-xs
+                    text-gray-400
                   "
-                />
+                >
+                  QR tidak tersedia
+                </div>
               )}
             </div>
           </div>
 
           {/* ID PESERTA */}
+
           <div
             className="
               mt-[15px]
