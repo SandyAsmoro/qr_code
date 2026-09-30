@@ -166,8 +166,8 @@ export default function RegistrationForm() {
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement |
-        HTMLTextAreaElement |
-        HTMLSelectElement
+      HTMLTextAreaElement |
+      HTMLSelectElement
     >
   ) => {
     const { name, value } = e.target
@@ -183,12 +183,12 @@ export default function RegistrationForm() {
         value === ''
           ? ''
           : [
-                'umur',
-                'tinggi_badan',
-                'berat_badan',
-                'jumlah_saudara',
-                'anak_ke',
-              ].includes(name)
+            'umur',
+            'tinggi_badan',
+            'berat_badan',
+            'jumlah_saudara',
+            'anak_ke',
+          ].includes(name)
             ? Number(value)
             : value,
     }))
@@ -874,14 +874,19 @@ export default function RegistrationForm() {
           )}
 
           {emailStatus === 'sent' && (
-            <span className="text-green-700">
-              QR Code terkirim ke{' '}
-              <strong>
-                {
-                  submittedData.email
-                }
-              </strong>
-            </span>
+            <div className="flex flex-col gap-1 text-green-700">
+              <span>
+                QR Code berhasil dikirim ke{' '}
+                <strong>
+                  {submittedData.email}
+                </strong>
+              </span>
+
+              <span className="text-xs text-gray-600">
+                Jika email belum terlihat di Kotak Masuk,
+                silakan cek folder Spam atau Promosi pada email Anda.
+              </span>
+            </div>
           )}
 
           {emailStatus === 'failed' && (

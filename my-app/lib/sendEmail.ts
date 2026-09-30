@@ -17,15 +17,61 @@ export async function sendQRCodeEmail(
   const buffer = Buffer.from(base64Data, 'base64')
 
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
-      <h2 style="color: #2563eb;">Registrasi Berhasil ✓</h2>
-      <p>Halo <strong>${namaLengkap}</strong>,</p>
-      <p>Terima kasih telah mendaftar. Berikut adalah QR Code Anda yang akan digunakan untuk presensi kehadiran.</p>
-      <div style="text-align: center; margin: 24px 0;">
-        <img src="cid:qrcode" alt="QR Code" style="width: 250px; height: 250px; border: 4px solid #eee;" />
+    <div style="
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 0 auto;
+    ">
+      <h2 style="color: #2563eb;">
+        Registrasi Berhasil ✓
+      </h2>
+
+      <p>
+        Halo <strong>${namaLengkap}</strong>,
+      </p>
+
+      <p>
+        Terima kasih telah mendaftar.
+        Berikut adalah QR Code Anda yang akan digunakan
+        untuk presensi kehadiran.
+      </p>
+
+      <p style="
+        background-color: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+        color: #9a3412;
+      ">
+        <strong>Catatan:</strong>
+        Jika email ini tidak ditemukan di Kotak Masuk,
+        silakan periksa folder <strong>Spam</strong>
+        atau <strong>Promosi</strong> pada email Anda.
+      </p>
+
+      <div style="
+        text-align: center;
+        margin: 24px 0;
+      ">
+        <img
+          src="cid:qrcode"
+          alt="QR Code"
+          style="
+            width: 250px;
+            height: 250px;
+            border: 4px solid #eee;
+          "
+        />
       </div>
-      <p style="font-size: 13px; color: #666;">
-        Simpan email ini atau download QR Code, lalu tunjukkan saat acara berlangsung untuk keperluan presensi.
+
+      <p style="
+        font-size: 13px;
+        color: #666;
+      ">
+        Simpan email ini atau download QR Code,
+        lalu tunjukkan saat acara berlangsung
+        untuk keperluan presensi.
       </p>
     </div>
   `
