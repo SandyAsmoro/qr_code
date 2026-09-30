@@ -1,325 +1,181 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element --
+   Sengaja memakai <img> biasa (bukan next/image): kartu ini di-render ke PNG
+   oleh html2canvas, termasuk saat berada di luar layar pada bulk download.
+   next/image me-lazy-load gambar yang tidak terlihat sehingga load-nya tidak
+   pernah selesai dan hasil download bisa kosong. */
+
 import { forwardRef } from 'react'
+import { resolveRegionTheme } from '@/lib/idCardTheme'
 
 interface IdCardProps {
   nama: string
   participantCode: string
   qrCodeUrl: string
-  daerah?: string
-  eventLabel?: string
-}
-
-type CardTheme = {
-  dark: string
-  light: string
-  pillBg: string
-  text: string
+  daerah?: string | null
 }
 
 /**
- * Tema warna berdasarkan daerah peserta.
+ * Design token ID Card.
+ * Ubah tampilan dari sini saja; layout sama untuk semua daerah.
+ *
+ * Posisi vertikal (persen dari tinggi kartu, 82 : 105):
+ *   ~22%  awal blok nama (di bawah ornamen atas)
+ *   ~38%  awal QR Code
+ *   ~79%  akhir QR Code
+ *   ~87%  akhir ID peserta
  */
-const DAERAH_THEMES: Record<string, CardTheme> = {
-  'Kediri Barat': {
-    dark: '#8A1C1C',
-    light: '#EF5350',
-    pillBg: '#FBE4E4',
-    text: '#8A1C1C',
+const ID_CARD_DESIGN = {
+  // Warna dan font inline (bukan class Tailwind) supaya hasil export PNG
+  // tidak bergantung pada fungsi warna CSS modern (oklab/color-mix).
+  textColor: '#111827',
+  fontFamily:
+    'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+
+  radius: 16,
+  outline: '0 0 0 1px rgba(0, 0, 0, 0.1)',
+
+  layout: {
+    topOffset: '22%', // ruang kosong di atas nama (ornamen atas)
+    nameHeight: '16%', // tinggi tetap → posisi QR tidak bergeser
+    nameSafeX: '6%', // safe area kiri/kanan
+    nameWidth: '90%',
+    qrGap: '2.5%',
+    idGap: '3.5%',
   },
 
-  'Kediri Kota': {
-    dark: '#0C3A86',
-    light: '#3FA9F5',
-    pillBg: '#E3F1FD',
-    text: '#0C3A86',
+  name: {
+    fontWeight: 800,
+    lineHeight: 1.1,
+    // Nama panjang dikecilkan bertahap agar tetap max. 2–3 baris, bukan 1 baris.
+    sizes: [
+      { maxLength: 26, fontSize: 28 },
+      { maxLength: 34, fontSize: 24 },
+      { maxLength: Infinity, fontSize: 20 },
+    ],
   },
 
-  'Kediri Selatan 1': {
-    dark: '#146C2E',
-    light: '#4ADE80',
-    pillBg: '#E2F6E9',
-    text: '#146C2E',
+  participantId: {
+    fontSize: 20,
+    fontWeight: 800,
+    letterSpacing: '0.08em',
   },
-}
 
-const DEFAULT_THEME: CardTheme =
-  DAERAH_THEMES['Kediri Kota']
+  qr: {
+    width: '50%', // persegi, dan proporsional terhadap lebar kartu
+    padding: '2.4%', // ≈ 8px pada lebar 328px → quiet zone
+    radius: 8,
+    shadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+  },
+} as const
 
-const getTheme = (
-  daerah?: string
-): CardTheme => {
-  return (
-    (daerah && DAERAH_THEMES[daerah]) ||
-    DEFAULT_THEME
-  )
+const getNameFontSize = (nama: string): number => {
+  const length = nama.trim().length
+  const tier = ID_CARD_DESIGN.name.sizes.find((size) => length <= size.maxLength)
+
+  return tier ? tier.fontSize : ID_CARD_DESIGN.name.sizes[0].fontSize
 }
 
 const IdCard = forwardRef<HTMLDivElement, IdCardProps>(
-  (
-    {
-      nama,
-      participantCode,
-      qrCodeUrl,
-      daerah,
-      eventLabel = 'ID PESERTA',
-    },
-    ref
-  ) => {
-    const theme = getTheme(daerah)
+  ({ nama, participantCode, qrCodeUrl, daerah }, ref) => {
+    const theme = resolveRegionTheme(daerah)
+    const { layout, name, participantId, qr } = ID_CARD_DESIGN
 
     return (
       <div
         ref={ref}
         data-id-card="true"
-        className="
-          relative
-          mx-auto
-          aspect-[82/105]
-          w-full
-          max-w-[320px]
-          overflow-hidden
-          rounded-[20px]
-          bg-white
-          shadow-xl
-          ring-1
-          ring-black/10
-        "
+        // Ukuran cetak: 8,2 × 10,5 cm (tinggi otomatis dari aspect ratio 82/105)
+        className="relative mx-auto aspect-[82/105] w-full max-w-[328px] overflow-hidden bg-white print:w-[8.2cm] print:max-w-[8.2cm]"
         style={{
-          fontFamily:
-            'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          borderRadius: ID_CARD_DESIGN.radius,
+          boxShadow: ID_CARD_DESIGN.outline,
+          fontFamily: ID_CARD_DESIGN.fontFamily,
+          color: ID_CARD_DESIGN.textColor,
         }}
       >
-        {/* =====================================================
-            HEADER
-        ====================================================== */}
-
-        <svg
-          className="
-            absolute
-            left-0
-            top-0
-            z-0
-            h-[21%]
-            w-full
-          "
-          viewBox="0 0 400 165"
-          preserveAspectRatio="none"
+        {/* Layer 1: Background (aset gambar, dekoratif) */}
+        <img
+          src={theme.background}
+          alt=""
           aria-hidden="true"
-        >
-          <path
-            d="
-              M0,0
-              H400
-              V92
-              C340,138 282,72 218,91
-              C150,112 95,46 0,94
-              Z
-            "
-            fill={theme.light}
-          />
+          draggable={false}
+          loading="eager"
+          decoding="sync"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
 
-          <path
-            d="
-              M0,0
-              H400
-              V68
-              C330,118 275,54 210,75
-              C140,98 88,28 0,72
-              Z
-            "
-            fill={theme.dark}
-          />
-        </svg>
+        {/* Layer 2: Konten */}
+        <div className="relative z-10 flex h-full w-full flex-col items-center">
+          <div className="shrink-0" style={{ height: layout.topOffset }} aria-hidden="true" />
 
-        {/* =====================================================
-            FOOTER
-        ====================================================== */}
-
-        <svg
-          className="
-            absolute
-            bottom-0
-            left-0
-            z-0
-            h-[13%]
-            w-full
-          "
-          viewBox="0 0 400 105"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <path
-            d="
-              M0,105
-              V57
-              C90,28 145,73 225,48
-              C300,24 350,61 400,39
-              V105
-              Z
-            "
-            fill={theme.dark}
-          />
-
-          <path
-            d="
-              M0,66
-              C92,39 148,80 230,55
-              C300,34 352,70 400,47
-            "
-            stroke="#D9A441"
-            strokeWidth="4"
-            fill="none"
-          />
-
-          <path
-            d="
-              M0,105
-              V79
-              C98,53 151,91 238,67
-              C310,47 360,78 400,56
-              V105
-              Z
-            "
-            fill={theme.light}
-          />
-        </svg>
-
-        {/* =====================================================
-            CONTENT
-        ====================================================== */}
-
-        <div
-          className="
-            relative
-            z-10
-            flex
-            h-full
-            flex-col
-            items-center
-            px-[18px]
-            pt-[78px]
-            pb-[52px]
-            text-center
-          "
-        >
-          {/* Nama */}
-
+          {/* Nama Lengkap */}
           <div
-            className="
-              flex
-              min-h-[46px]
-              w-full
-              items-center
-              justify-center
-            "
-          >
-            <h3
-              className="
-                max-w-[92%]
-                break-words
-                text-[42px]
-                capitalize
-                font-extrabold
-                leading-[1.12]
-                tracking-[-0.02em]
-              "
-              style={{
-                color: theme.text,
-              }}
-            >
-              {nama}
-            </h3>
-          </div>
-
-          {/* QR CODE */}
-
-          <div className="mt-[15px]">
-            <div
-              className="
-                rounded-[18px]
-                border
-                border-gray-200
-                bg-white
-                p-[9px]
-                shadow-[0_4px_14px_rgba(0,0,0,0.08)]
-              "
-            >
-              {qrCodeUrl ? (
-                <img
-                  src={qrCodeUrl}
-                  alt={`QR Code ${nama}`}
-                  className="
-                    block
-                    h-[136px]
-                    w-[136px]
-                    object-contain
-                  "
-                  crossOrigin="anonymous"
-                />
-              ) : (
-                <div
-                  className="
-                    flex
-                    h-[136px]
-                    w-[136px]
-                    items-center
-                    justify-center
-                    rounded-lg
-                    bg-gray-100
-                    text-xs
-                    text-gray-400
-                  "
-                >
-                  QR tidak tersedia
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ID PESERTA */}
-
-          <div
-            className="
-              mt-[15px]
-              w-full
-              rounded-[17px]
-              px-[14px]
-              py-[9px]
-            "
+            className="flex shrink-0 items-center justify-center"
             style={{
-              backgroundColor: theme.pillBg,
+              height: layout.nameHeight,
+              width: '100%',
+              paddingLeft: layout.nameSafeX,
+              paddingRight: layout.nameSafeX,
             }}
           >
             <p
-              className="
-                text-[8px]
-                font-bold
-                uppercase
-                tracking-[0.28em]
-              "
+              className="text-balance text-center uppercase"
               style={{
-                color: theme.text,
+                width: layout.nameWidth,
+                margin: 0,
+                fontSize: getNameFontSize(nama),
+                fontWeight: name.fontWeight,
+                lineHeight: name.lineHeight,
+                overflowWrap: 'anywhere',
               }}
             >
-              {eventLabel}
-            </p>
-
-            <p
-              className="
-                mt-[2px]
-                text-[18px]
-                font-black
-                leading-none
-                tracking-[0.04em]
-              "
-              style={{
-                color: theme.text,
-              }}
-            >
-              {participantCode}
+              {nama}
             </p>
           </div>
+
+          {/* QR Code */}
+          <div
+            className="flex shrink-0 items-center justify-center bg-white"
+            style={{
+              width: qr.width,
+              aspectRatio: '1 / 1',
+              marginTop: layout.qrGap,
+              padding: qr.padding,
+              borderRadius: qr.radius,
+              boxShadow: qr.shadow,
+            }}
+          >
+            {qrCodeUrl ? (
+              <img
+                src={qrCodeUrl}
+                alt={`QR Code peserta ${nama}`}
+                crossOrigin="anonymous"
+                draggable={false}
+                className="block h-full w-full object-contain"
+              />
+            ) : (
+              <span className="text-center text-xs" style={{ color: '#6b7280' }}>
+                QR tidak tersedia
+              </span>
+            )}
+          </div>
+
+          {/* ID Peserta */}
+          <p
+            className="shrink-0 text-center"
+            style={{
+              margin: 0,
+              marginTop: layout.idGap,
+              fontSize: participantId.fontSize,
+              fontWeight: participantId.fontWeight,
+              letterSpacing: participantId.letterSpacing,
+              lineHeight: 1.1,
+            }}
+          >
+            {participantCode}
+          </p>
         </div>
       </div>
     )

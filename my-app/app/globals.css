@@ -31,3 +31,53 @@ body {
     margin: 0;
   }
 }
+
+/* Tambahkan di bagian bawah app/globals.css (OPSIONAL)
+   Menyamakan tampilan bawaan html5-qrcode dengan design system. */
+
+#qr-scanner {
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+#qr-scanner > div:last-of-type,
+#qr-scanner__dashboard_section {
+  padding: 1rem !important;
+}
+
+#qr-scanner button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: var(--color-purple-600, #9333ea);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+
+#qr-scanner button:hover {
+  background: var(--color-purple-700, #7e22ce);
+}
+
+#qr-scanner select {
+  max-width: 100%;
+  border: 1px solid var(--color-gray-300, #d1d5db);
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+#qr-scanner a {
+  color: var(--color-purple-600, #9333ea);
+  font-size: 0.875rem;
+}
+
+#qr-scanner video {
+  border-radius: 0.5rem;
+}
