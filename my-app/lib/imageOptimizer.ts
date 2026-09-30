@@ -30,7 +30,7 @@ export const optimizeImage = async (
       })
     }
 
-    pipeline = pipeline.withMetadata(false)
+    pipeline = pipeline.keepMetadata()
 
     if (mergedOptions.format === 'webp') {
       pipeline = pipeline.webp({ quality: mergedOptions.quality })
