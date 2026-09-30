@@ -85,7 +85,7 @@ const JENIS_KELAMIN_OPTIONS = ['Laki-laki', 'Perempuan']
 
 const hasAttended = (p: Participant) => (p.attendance_count || 0) > 0
 
-export default function DashboardComponent() {
+export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' | 'panitia' }) {
   const router = useRouter()
 
   // ---------------------------------------------------------------
@@ -280,8 +280,8 @@ export default function DashboardComponent() {
     try {
       // Login admin memakai cookie (lihat middleware.ts), jadi logout
       // harus lewat API route, bukan supabase.auth.signOut().
-      await fetch('/api/admin-logout', { method: 'POST' })
-      router.push('/admin/login')
+      await fetch('/api/logout', { method: 'POST' })
+      router.push('/login')
       router.refresh()
     } catch (error) {
       console.error('Logout error:', error)
@@ -295,8 +295,13 @@ export default function DashboardComponent() {
     setDeleting(true)
 
     try {
-      const { error } = await supabase.from('participants').delete().eq('id', deleteTarget.id)
-      if (error) throw error
+      const response = await fetch('/api/admin/participants', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: deleteTarget.id }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Gagal menghapus peserta')
 
       setParticipants((prev) => prev.filter((p) => p.id !== deleteTarget.id))
       if (selectedParticipant?.id === deleteTarget.id) setSelectedParticipant(null)
@@ -356,30 +361,29 @@ export default function DashboardComponent() {
   // ---------------------------------------------------------------
   const detailItems = selectedParticipant
     ? [
-        { icon: User, label: 'Jenis Kelamin', value: selectedParticipant.jenis_kelamin || '-' },
-        { icon: Users2, label: 'Umur', value: `${selectedParticipant.umur ?? '-'} tahun` },
-        { icon: MapPin, label: 'Daerah', value: selectedParticipant.daerah || '-' },
-        { icon: MapPin, label: 'Desa', value: selectedParticipant.desa || '-' },
-        { icon: Users2, label: 'Kelompok', value: selectedParticipant.kelompok || '-' },
-        { icon: Users2, label: 'Dapukan', value: selectedParticipant.dapukan || '-' },
-        { icon: Users2, label: 'Status', value: selectedParticipant.status || '-' },
-        {
-          icon: GraduationCap,
-          label: 'Pendidikan',
-          value: selectedParticipant.pendidikan_terakhir || '-',
-        },
-        { icon: Briefcase, label: 'Pekerjaan', value: selectedParticipant.pekerjaan || '-' },
-        { icon: Heart, label: 'Hobi', value: selectedParticipant.hobi || '-' },
-        {
-          icon: Ruler,
-          label: 'Tinggi / Berat',
-          value: `${selectedParticipant.tinggi_badan ?? '-'} cm / ${
-            selectedParticipant.berat_badan ?? '-'
+      { icon: User, label: 'Jenis Kelamin', value: selectedParticipant.jenis_kelamin || '-' },
+      { icon: Users2, label: 'Umur', value: `${selectedParticipant.umur ?? '-'} tahun` },
+      { icon: MapPin, label: 'Daerah', value: selectedParticipant.daerah || '-' },
+      { icon: MapPin, label: 'Desa', value: selectedParticipant.desa || '-' },
+      { icon: Users2, label: 'Kelompok', value: selectedParticipant.kelompok || '-' },
+      { icon: Users2, label: 'Dapukan', value: selectedParticipant.dapukan || '-' },
+      { icon: Users2, label: 'Status', value: selectedParticipant.status || '-' },
+      {
+        icon: GraduationCap,
+        label: 'Pendidikan',
+        value: selectedParticipant.pendidikan_terakhir || '-',
+      },
+      { icon: Briefcase, label: 'Pekerjaan', value: selectedParticipant.pekerjaan || '-' },
+      { icon: Heart, label: 'Hobi', value: selectedParticipant.hobi || '-' },
+      {
+        icon: Ruler,
+        label: 'Tinggi / Berat',
+        value: `${selectedParticipant.tinggi_badan ?? '-'} cm / ${selectedParticipant.berat_badan ?? '-'
           } kg`,
-        },
-        { icon: Users2, label: 'Jumlah Saudara', value: selectedParticipant.jumlah_saudara ?? '-' },
-        { icon: User, label: 'Anak Ke', value: selectedParticipant.anak_ke ?? '-' },
-      ]
+      },
+      { icon: Users2, label: 'Jumlah Saudara', value: selectedParticipant.jumlah_saudara ?? '-' },
+      { icon: User, label: 'Anak Ke', value: selectedParticipant.anak_ke ?? '-' },
+    ]
     : []
 
   // ---------------------------------------------------------------
@@ -393,33 +397,35 @@ export default function DashboardComponent() {
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              Admin Dashboard
+              {role === 'admin' ? 'Admin Dashboard' : 'Panitia Dashboard'}
             </h1>
-            <p className="mt-1 text-sm text-gray-600">Kelola data peserta, presensi & kartu ID</p>
+            <p className="mt-1 text-sm text-gray-600">{role === 'admin' ? 'Kelola data peserta, presensi & kartu ID' : 'Lihat data peserta, cari, filter, detail & scan'}</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
               icon={<ScanLine className="h-4 w-4" />}
-              onClick={() => router.push('/scan-card')}
+              onClick={() => router.push(role === 'admin' ? '/scan-card' : '/panitia/scan-card')}
             >
               Scan Peserta
             </Button>
             <Button
               variant="secondary"
               icon={<ClipboardCheck className="h-4 w-4" />}
-              onClick={() => router.push('/scan-attendance')}
+              onClick={() => router.push(role === 'admin' ? '/scan-attendance' : '/panitia/scan-attendance')}
             >
               Scan Presensi
             </Button>
-            <Button
-              variant="secondary"
-              icon={<Wrench className="h-4 w-4" />}
-              onClick={() => router.push('/admin/form-builder')}
-            >
-              Form Builder
-            </Button>
+            {role === 'admin' && (
+              <Button
+                variant="secondary"
+                icon={<Wrench className="h-4 w-4" />}
+                onClick={() => router.push('/admin/form-builder')}
+              >
+                Form Builder
+              </Button>
+            )}
             <Button
               variant="secondary"
               icon={<LogOut className="h-4 w-4" />}
@@ -597,31 +603,33 @@ export default function DashboardComponent() {
                   <strong>{participants.length}</strong> peserta
                 </p>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<Download className="h-4 w-4" />}
-                    loading={exporting}
-                    onClick={() => handleExport('excel')}
-                  >
-                    Export Excel
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<Download className="h-4 w-4" />}
-                    disabled={exporting}
-                    onClick={() => handleExport('csv')}
-                  >
-                    Export CSV
-                  </Button>
-                </div>
+                {role === 'admin' && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<Download className="h-4 w-4" />}
+                      loading={exporting}
+                      onClick={() => handleExport('excel')}
+                    >
+                      Export Excel
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<Download className="h-4 w-4" />}
+                      disabled={exporting}
+                      onClick={() => handleExport('csv')}
+                    >
+                      Export CSV
+                    </Button>
+                  </div>
+                )}
               </div>
             </Card>
 
-            {/* Bulk Download Kartu ID */}
-            <Card>
+            {/* Bulk Download Kartu ID — Admin only */}
+            {role === 'admin' && <Card>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Kartu ID Peserta</h2>
@@ -637,7 +645,7 @@ export default function DashboardComponent() {
                 {/* Penting: gunakan filteredParticipants, bukan participants */}
                 <BulkIdCardDownload participants={filteredParticipants} />
               </div>
-            </Card>
+            </Card>}
 
             {/* Table / Empty States */}
             {participants.length === 0 ? (
@@ -755,14 +763,16 @@ export default function DashboardComponent() {
                               >
                                 <Eye className="h-4 w-4" />
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteTarget(p)}
-                                aria-label={`Hapus ${p.nama_lengkap}`}
-                                className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              {role === 'admin' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteTarget(p)}
+                                  aria-label={`Hapus ${p.nama_lengkap}`}
+                                  className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -785,37 +795,46 @@ export default function DashboardComponent() {
         {selectedParticipant && (
           <div className="space-y-5">
             {/* Header */}
-            <div className="flex items-center gap-4">
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+            {/* Profile Header */}
+            <div className="flex flex-col items-center text-center">
+              {/* Foto peserta */}
+              <div className="relative h-40 w-28 overflow-hidden rounded-2xl bg-gray-100 shadow-sm ring-1 ring-gray-200 sm:h-48 sm:w-32">
                 {selectedParticipant.foto_formal_url ? (
                   <Image
                     src={selectedParticipant.foto_formal_url}
                     alt={`Foto formal ${selectedParticipant.nama_lengkap}`}
                     fill
-                    sizes="64px"
+                    sizes="128px"
                     className="object-cover"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
-                    <User className="h-7 w-7 text-gray-400" />
+                    <User className="h-12 w-12 text-gray-400" />
                   </div>
                 )}
               </div>
 
-              <div className="min-w-0">
-                <h3 className="text-lg font-bold text-gray-900">
-                  {selectedParticipant.nama_lengkap}
-                </h3>
-                <p className="font-mono text-sm font-semibold text-purple-600">
-                  {selectedParticipant.participant_code}
-                </p>
-                <div className="mt-2">
-                  {hasAttended(selectedParticipant) ? (
-                    <Badge variant="success">Sudah Hadir</Badge>
-                  ) : (
-                    <Badge variant="warning">Belum Hadir</Badge>
-                  )}
-                </div>
+              {/* Nama */}
+              <h3 className="mt-4 text-xl font-bold leading-tight text-gray-900">
+                {selectedParticipant.nama_lengkap}
+              </h3>
+
+              {/* ID Peserta */}
+              <p className="mt-1 font-mono text-sm font-semibold tracking-wide text-purple-600">
+                {selectedParticipant.participant_code}
+              </p>
+
+              {/* Attendance */}
+              <div className="mt-3">
+                {hasAttended(selectedParticipant) ? (
+                  <Badge variant="success">
+                    Sudah Hadir
+                  </Badge>
+                ) : (
+                  <Badge variant="warning">
+                    Belum Hadir
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -883,33 +902,35 @@ export default function DashboardComponent() {
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                variant="primary"
-                className="flex-1"
-                icon={<Download className="h-4 w-4" />}
-                loading={downloadingCard}
-                disabled={!selectedParticipant.qr_code_url}
-                onClick={handleDownloadCard}
-              >
-                Download Kartu ID
-              </Button>
-              <Button
-                variant="danger"
-                className="flex-1"
-                icon={<Trash2 className="h-4 w-4" />}
-                onClick={() => setDeleteTarget(selectedParticipant)}
-              >
-                Hapus
-              </Button>
-            </div>
+            {/* Actions — Admin only. Panitia is read-only. */}
+            {role === 'admin' && (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  icon={<Download className="h-4 w-4" />}
+                  loading={downloadingCard}
+                  disabled={!selectedParticipant.qr_code_url}
+                  onClick={handleDownloadCard}
+                >
+                  Download Kartu ID
+                </Button>
+                <Button
+                  variant="danger"
+                  className="flex-1"
+                  icon={<Trash2 className="h-4 w-4" />}
+                  onClick={() => setDeleteTarget(selectedParticipant)}
+                >
+                  Hapus
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>
 
-      {/* Delete Confirmation */}
-      <ConfirmDialog
+      {/* Delete Confirmation — Admin only */}
+      {role === 'admin' && <ConfirmDialog
         isOpen={!!deleteTarget}
         title="Hapus Data Peserta?"
         description={
@@ -920,7 +941,7 @@ export default function DashboardComponent() {
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
-      />
+      />}
 
       {/* Toast */}
       {notice && (
@@ -929,11 +950,10 @@ export default function DashboardComponent() {
           className="fixed inset-x-4 bottom-4 z-[60] sm:inset-x-auto sm:right-6 sm:w-96"
         >
           <div
-            className={`flex items-start gap-3 rounded-xl border p-4 shadow-lg ${
-              notice.type === 'error'
+            className={`flex items-start gap-3 rounded-xl border p-4 shadow-lg ${notice.type === 'error'
                 ? 'border-red-200 bg-red-50 text-red-700'
                 : 'border-green-200 bg-green-50 text-green-700'
-            }`}
+              }`}
           >
             {notice.type === 'error' ? (
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />

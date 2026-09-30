@@ -317,46 +317,67 @@ export default function QRScanner({ mode }: { mode: ScanMode }) {
           )}
 
           {/* Data peserta */}
-          <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex items-start gap-4">
-              {scannedData.foto_formal_url ? (
-                <div className="relative aspect-[4/6] w-24 shrink-0 overflow-hidden rounded-xl bg-gray-100 sm:w-28">
+          {/* Data peserta */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+            {/* Profile Header */}
+            <div className="flex flex-col items-center text-center">
+              {/* Foto peserta */}
+              <div className="relative h-44 w-32 overflow-hidden rounded-2xl bg-gray-100 shadow-sm ring-1 ring-gray-200 sm:h-52 sm:w-36">
+                {scannedData.foto_formal_url ? (
                   <Image
                     src={scannedData.foto_formal_url}
                     alt={`Foto formal ${scannedData.nama_lengkap}`}
                     fill
-                    sizes="112px"
+                    sizes="144px"
                     className="object-cover"
                   />
-                </div>
-              ) : (
-                <div className="flex aspect-[4/6] w-24 shrink-0 items-center justify-center rounded-xl bg-gray-100 sm:w-28">
-                  <User className="h-8 w-8 text-gray-400" />
-                </div>
-              )}
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <User className="h-12 w-12 text-gray-400" />
+                  </div>
+                )}
+              </div>
 
-              <div className="min-w-0">
-                <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                  {scannedData.nama_lengkap}
-                </h2>
-                <p className="mt-1 font-mono text-sm font-semibold text-purple-600">
-                  {scannedData.participant_code}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="info">{scannedData.umur} tahun</Badge>
-                  <Badge variant="info">{scannedData.jenis_kelamin}</Badge>
-                </div>
+              {/* Nama */}
+              <h2 className="mt-4 text-xl font-bold leading-tight text-gray-900 sm:text-2xl">
+                {scannedData.nama_lengkap}
+              </h2>
+
+              {/* ID Peserta */}
+              <p className="mt-1 font-mono text-sm font-semibold tracking-wide text-purple-600">
+                {scannedData.participant_code}
+              </p>
+
+              {/* Informasi singkat */}
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                <Badge variant="info">
+                  {scannedData.umur} tahun
+                </Badge>
+
+                <Badge variant="info">
+                  {scannedData.jenis_kelamin}
+                </Badge>
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 border-t border-gray-200 pt-5 sm:grid-cols-2">
+            {/* Detail */}
+            <div className="mt-6 grid grid-cols-1 gap-3 border-t border-gray-200 pt-6 sm:grid-cols-2">
               {detailItems.map((item) => (
-                <div key={item.label} className="rounded-xl bg-gray-50 p-3">
+                <div
+                  key={item.label}
+                  className="rounded-xl bg-gray-50 p-3"
+                >
                   <div className="flex items-center gap-2">
                     <item.icon className="h-4 w-4 shrink-0 text-gray-400" />
-                    <span className="text-xs text-gray-500">{item.label}</span>
+
+                    <span className="text-xs text-gray-500">
+                      {item.label}
+                    </span>
                   </div>
-                  <p className="mt-1 text-sm font-medium text-gray-900">{item.value}</p>
+
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                    {item.value}
+                  </p>
                 </div>
               ))}
             </div>

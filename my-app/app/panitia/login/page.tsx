@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
-export default function AdminLoginPage() {
+export default function PanitiaLoginPage() {
   redirect('/login')
 }

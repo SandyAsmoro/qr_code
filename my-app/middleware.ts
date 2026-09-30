@@ -1,28 +1,116 @@
-import { NextRequest, NextResponse } from 'next/server'
+import {
+  NextRequest,
+  NextResponse,
+} from 'next/server'
 
-const PROTECTED_PREFIXES = ['/admin', '/scan-card', '/scan-attendance']
+import { getSession } from '@/lib/auth'
 
-export function middleware(request: NextRequest) {
+const ADMIN_PREFIXES = [
+  '/admin',
+  '/scan-card',
+  '/scan-attendance',
+]
+
+const PANITIA_PREFIXES = [
+  '/panitia',
+]
+
+export async function middleware(
+  request: NextRequest
+) {
   const path = request.nextUrl.pathname
 
-  // Halaman login sendiri tidak diproteksi
-  if (path === '/admin/login') {
+  /*
+   * Semua login lama diarahkan ke satu halaman login.
+   */
+  if (
+    path === '/login' ||
+    path === '/admin/login' ||
+    path === '/panitia/login'
+  ) {
+    if (path !== '/login') {
+      return NextResponse.redirect(
+        new URL('/login', request.url)
+      )
+    }
+
     return NextResponse.next()
   }
 
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => path.startsWith(prefix))
+  const isAdminArea =
+    ADMIN_PREFIXES.some(
+      (prefix) =>
+        path === prefix ||
+        path.startsWith(`${prefix}/`)
+    )
 
-  if (isProtected) {
-    const session = request.cookies.get('admin_session')
+  const isPanitiaArea =
+    PANITIA_PREFIXES.some(
+      (prefix) =>
+        path === prefix ||
+        path.startsWith(`${prefix}/`)
+    )
 
-    if (!session || session.value !== process.env.ADMIN_PASSWORD) {
-      return NextResponse.redirect(new URL('/admin/login', request.url))
-    }
+  /*
+   * Bukan area yang membutuhkan autentikasi.
+   */
+  if (
+    !isAdminArea &&
+    !isPanitiaArea
+  ) {
+    return NextResponse.next()
+  }
+
+  /*
+   * Ambil session yang sudah diverifikasi
+   * signature-nya.
+   */
+  const session = await getSession(request)
+
+  /*
+   * Tidak login.
+   */
+  if (!session) {
+    return NextResponse.redirect(
+      new URL('/login', request.url)
+    )
+  }
+
+  /*
+   * Area Admin hanya boleh Admin.
+   */
+  if (
+    isAdminArea &&
+    session.role !== 'admin'
+  ) {
+    return NextResponse.redirect(
+      new URL(
+        '/panitia/dashboard',
+        request.url
+      )
+    )
+  }
+
+  /*
+   * Area Panitia hanya boleh Panitia.
+   */
+  if (
+    isPanitiaArea &&
+    session.role !== 'panitia'
+  ) {
+    return NextResponse.redirect(
+      new URL('/admin', request.url)
+    )
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/scan-card/:path*', '/scan-attendance/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/panitia/:path*',
+    '/scan-card/:path*',
+    '/scan-attendance/:path*',
+  ],
 }

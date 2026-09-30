@@ -10,9 +10,12 @@ export type RegionTheme = {
 }
 
 export const REGION_THEMES: Record<string, RegionTheme> = {
-  'Kediri Selatan 1': { background: '/id-card/background-green.png' },
-  'Kediri Barat': { background: '/id-card/background-red.png' },
-  'Kediri Kota': { background: '/id-card/background-blue.png' },
+  'Kediri Selatan 1': { background: '/id-card/background-green.webp' },
+  'Kediri Barat': { background: '/id-card/background-red.webp' },
+  'Kediri Kota': { background: '/id-card/background-blue.webp' },
+  // 'Kediri Selatan 1': { background: '/id-card/background-green.png' },
+  // 'Kediri Barat': { background: '/id-card/background-red.png' },
+  // 'Kediri Kota': { background: '/id-card/background-blue.png' },
 }
 
 /**
