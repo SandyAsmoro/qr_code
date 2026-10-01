@@ -1,117 +1,65 @@
-// import { NextRequest, NextResponse } from 'next/server'
-// import { uploadToGoogleDrive } from '@/lib/googleDrive'
-// import { optimizePhotoForCard } from '@/lib/imageOptimizer'
-
-// export async function POST(request: NextRequest) {
-//   try {
-//     const formData = await request.formData()
-//     const file = formData.get('file') as File
-
-//     if (!file) {
-//       return NextResponse.json(
-//         { error: 'No file provided' },
-//         { status: 400 }
-//       )
-//     }
-
-//     if (file.size > 10 * 1024 * 1024) {
-//       return NextResponse.json(
-//         { error: 'File size exceeds 10MB limit' },
-//         { status: 400 }
-//       )
-//     }
-
-//     if (!file.type.startsWith('image/')) {
-//       return NextResponse.json(
-//         { error: 'File must be an image' },
-//         { status: 400 }
-//       )
-//     }
-
-//     console.log(`📸 Processing image: ${file.name}`)
-
-//     const originalBuffer = Buffer.from(await file.arrayBuffer())
-
-//     let optimizedBuffer: Buffer
-//     try {
-//       optimizedBuffer = await optimizePhotoForCard(originalBuffer)
-//       console.log(
-//         `✅ Image optimized: ${originalBuffer.length} → ${optimizedBuffer.length} bytes`
-//       )
-//     } catch (optimizeError) {
-//       console.error('Optimization failed, using original:', optimizeError)
-//       optimizedBuffer = originalBuffer
-//     }
-
-//     const timestamp = Date.now()
-//     const random = Math.random().toString(36).substring(2, 8)
-//     const fileName = `participant_${timestamp}_${random}.webp`
-
-//     const publicUrl = await uploadToGoogleDrive(
-//       optimizedBuffer,
-//       fileName,
-//       'image/webp'
-//     )
-
-//     if (!publicUrl) {
-//       throw new Error('Failed to get public URL from Google Drive')
-//     }
-
-//     console.log(`✅ Uploaded to Google Drive: ${publicUrl}`)
-
-//     return NextResponse.json({
-//       success: true,
-//       url: publicUrl,
-//       fileName: fileName,
-//       format: 'webp',
-//       originalSize: originalBuffer.length,
-//       optimizedSize: optimizedBuffer.length,
-//       compressionRatio: Math.round(
-//         (1 - optimizedBuffer.length / originalBuffer.length) * 100
-//       ),
-//     })
-//   } catch (error) {
-//     console.error('Upload error:', error)
-//     return NextResponse.json(
-//       { error: error instanceof Error ? error.message : 'Upload failed' },
-//       { status: 500 }
-//     )
-//   }
-// }
-
-
-
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { optimizePhotoForCard } from '@/lib/imageOptimizer'
 
+const MAX_FILE_SIZE_MB = 2
+const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const file = formData.get('file') as File
+    const file = formData.get('file')
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    // Pastikan benar-benar berupa File (bukan string / null)
+    if (!(file instanceof File)) {
+      return NextResponse.json(
+        { error: 'Foto wajib diunggah' },
+        { status: 400 }
+      )
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File size exceeds 10MB' }, { status: 400 })
+    if (file.size === 0) {
+      return NextResponse.json(
+        { error: 'File foto kosong' },
+        { status: 400 }
+      )
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'File must be an image' }, { status: 400 })
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: `Ukuran foto maksimal ${MAX_FILE_SIZE_MB}MB` },
+        { status: 413 }
+      )
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Format foto harus JPG, PNG, atau WEBP' },
+        { status: 400 }
+      )
     }
 
     console.log(`📸 Processing image: ${file.name}`)
 
     const originalBuffer = Buffer.from(await file.arrayBuffer())
 
+    // Optimasi sekaligus berfungsi sebagai validasi isi file.
+    // file.type berasal dari client dan bisa dipalsukan, jadi kalau
+    // gambar gagal diproses, tolak file-nya (jangan di-upload apa adanya).
     let optimizedBuffer: Buffer
     try {
       optimizedBuffer = await optimizePhotoForCard(originalBuffer)
-      console.log(`✅ Image optimized: ${originalBuffer.length} → ${optimizedBuffer.length}`)
-    } catch {
-      optimizedBuffer = originalBuffer
+      console.log(
+        `✅ Image optimized: ${originalBuffer.length} → ${optimizedBuffer.length}`
+      )
+    } catch (optimizeError) {
+      console.error('Image optimization error:', optimizeError)
+      return NextResponse.json(
+        { error: 'File bukan gambar yang valid atau rusak' },
+        { status: 400 }
+      )
     }
 
     // Generate filename
@@ -120,7 +68,7 @@ export async function POST(request: NextRequest) {
     const fileName = `participant_${timestamp}_${random}.webp`
 
     // Upload ke Supabase Storage
-    const { data, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('participant-photos')
       .upload(fileName, optimizedBuffer, {
         contentType: 'image/webp',
@@ -141,7 +89,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       url: publicUrl,
-      fileName: fileName,
+      fileName,
       format: 'webp',
       originalSize: originalBuffer.length,
       optimizedSize: optimizedBuffer.length,

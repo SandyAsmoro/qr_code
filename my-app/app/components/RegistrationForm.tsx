@@ -43,6 +43,19 @@ type FormDataType = {
   pekerjaan: string
 }
 
+// =====================================================
+// KONSTANTA FOTO
+// =====================================================
+
+const MAX_FOTO_SIZE_MB = 2
+const MAX_FOTO_SIZE = MAX_FOTO_SIZE_MB * 1024 * 1024
+
+const ALLOWED_FOTO_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]
+
 const PENDIDIKAN_OPTIONS = [
   'SD',
   'SMP',
@@ -201,26 +214,39 @@ export default function RegistrationForm() {
   const handleFotoChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = e.target.files?.[0]
+    const input = e.target
+    const file = input.files?.[0]
 
     if (!file) {
       return
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    // Validasi tipe file
+    if (!ALLOWED_FOTO_TYPES.includes(file.type)) {
       setFieldErrors((prev) => ({
         ...prev,
-        foto: 'Ukuran foto maksimal 10MB',
+        foto: 'Format foto harus JPG, PNG, atau WEBP',
       }))
+
+      // Reset supaya file yang sama bisa dipilih ulang
+      input.value = ''
 
       return
     }
 
-    if (!file.type.startsWith('image/')) {
+    // Validasi ukuran file
+    if (file.size > MAX_FOTO_SIZE) {
       setFieldErrors((prev) => ({
         ...prev,
-        foto: 'File harus berupa gambar',
+        foto: `Ukuran foto maksimal ${MAX_FOTO_SIZE_MB}MB (ukuran file Anda ${(
+          file.size /
+          1024 /
+          1024
+        ).toFixed(2)} MB)`,
       }))
+
+      // Reset supaya file yang sama bisa dipilih ulang
+      input.value = ''
 
       return
     }
@@ -234,9 +260,9 @@ export default function RegistrationForm() {
 
     const reader = new FileReader()
 
-    reader.onload = (e) => {
+    reader.onload = (event) => {
       setFotoPreview(
-        e.target?.result as string
+        event.target?.result as string
       )
     }
 
@@ -408,8 +434,58 @@ export default function RegistrationForm() {
         'Amal Sholih Diisi'
     }
 
+    if (!formData.desa.trim()) {
+      errors.desa = 'Amal Sholih Diisi'
+    }
+
+    if (!formData.kelompok.trim()) {
+      errors.kelompok = 'Amal Sholih Diisi'
+    }
+
+    if (!formData.dapukan.trim()) {
+      errors.dapukan = 'Amal Sholih Diisi'
+    }
+
+    if (!formData.status) {
+      errors.status = 'Amal Sholih Diisi'
+    }
+
+    // Field angka dicek dengan === '' agar nilai 0 tetap dianggap terisi
+    if (formData.tinggi_badan === '') {
+      errors.tinggi_badan = 'Amal Sholih Diisi'
+    }
+
+    if (formData.berat_badan === '') {
+      errors.berat_badan = 'Amal Sholih Diisi'
+    }
+
+    if (formData.jumlah_saudara === '') {
+      errors.jumlah_saudara = 'Amal Sholih Diisi'
+    }
+
+    if (formData.anak_ke === '') {
+      errors.anak_ke = 'Amal Sholih Diisi'
+    }
+
+    if (!formData.pendidikan_terakhir) {
+      errors.pendidikan_terakhir =
+        'Amal Sholih Diisi'
+    }
+
+    if (!formData.pekerjaan.trim()) {
+      errors.pekerjaan = 'Amal Sholih Diisi'
+    }
+
+    // Foto wajib diisi + cek ulang ukuran & tipe
     if (!fotoFile) {
-      errors.foto = 'Amal Sholih Diisi'
+      errors.foto = 'Foto formal wajib diisi'
+    } else if (
+      !ALLOWED_FOTO_TYPES.includes(fotoFile.type)
+    ) {
+      errors.foto =
+        'Format foto harus JPG, PNG, atau WEBP'
+    } else if (fotoFile.size > MAX_FOTO_SIZE) {
+      errors.foto = `Ukuran foto maksimal ${MAX_FOTO_SIZE_MB}MB`
     }
 
     setFieldErrors(errors)
@@ -947,6 +1023,7 @@ export default function RegistrationForm() {
   return (
     <form
       onSubmit={handleSubmit}
+      noValidate
       className="mx-auto max-w-4xl space-y-6"
     >
       {fieldErrors.submit && (
@@ -1044,8 +1121,10 @@ export default function RegistrationForm() {
             id="status"
             name="status"
             label="Status"
+            required
             value={formData.status}
             onChange={handleChange}
+            error={fieldErrors.status}
           >
             <option value="">
               -- Pilih --
@@ -1102,8 +1181,10 @@ export default function RegistrationForm() {
             id="desa"
             name="desa"
             label="Desa"
+            required
             value={formData.desa}
             onChange={handleChange}
+            error={fieldErrors.desa}
             placeholder="Contoh: Desa Semen"
           />
 
@@ -1111,8 +1192,10 @@ export default function RegistrationForm() {
             id="kelompok"
             name="kelompok"
             label="Kelompok"
+            required
             value={formData.kelompok}
             onChange={handleChange}
+            error={fieldErrors.kelompok}
             placeholder="Contoh: Kelompok A"
           />
 
@@ -1120,8 +1203,10 @@ export default function RegistrationForm() {
             id="dapukan"
             name="dapukan"
             label="Dapukan"
+            required
             value={formData.dapukan}
             onChange={handleChange}
+            error={fieldErrors.dapukan}
             placeholder="Contoh: Dapukan 1"
           />
         </div>
@@ -1141,10 +1226,12 @@ export default function RegistrationForm() {
             type="number"
             step="0.1"
             label="Tinggi Badan (cm)"
+            required
             value={
               formData.tinggi_badan
             }
             onChange={handleChange}
+            error={fieldErrors.tinggi_badan}
             placeholder="Contoh: 175"
           />
 
@@ -1154,10 +1241,12 @@ export default function RegistrationForm() {
             type="number"
             step="0.1"
             label="Berat Badan (kg)"
+            required
             value={
               formData.berat_badan
             }
             onChange={handleChange}
+            error={fieldErrors.berat_badan}
             placeholder="Contoh: 70"
           />
         </div>
@@ -1176,10 +1265,12 @@ export default function RegistrationForm() {
             name="jumlah_saudara"
             type="number"
             label="Jumlah Saudara"
+            required
             value={
               formData.jumlah_saudara
             }
             onChange={handleChange}
+            error={fieldErrors.jumlah_saudara}
             placeholder="Contoh: 3"
           />
 
@@ -1188,8 +1279,10 @@ export default function RegistrationForm() {
             name="anak_ke"
             type="number"
             label="Anak ke"
+            required
             value={formData.anak_ke}
             onChange={handleChange}
+            error={fieldErrors.anak_ke}
             placeholder="Contoh: 1"
           />
         </div>
@@ -1207,10 +1300,12 @@ export default function RegistrationForm() {
             id="pendidikan_terakhir"
             name="pendidikan_terakhir"
             label="Pendidikan Terakhir"
+            required
             value={
               formData.pendidikan_terakhir
             }
             onChange={handleChange}
+            error={fieldErrors.pendidikan_terakhir}
           >
             <option value="">
               -- Pilih --
@@ -1232,10 +1327,12 @@ export default function RegistrationForm() {
             id="pekerjaan"
             name="pekerjaan"
             label="Pekerjaan"
+            required
             value={
               formData.pekerjaan
             }
             onChange={handleChange}
+            error={fieldErrors.pekerjaan}
             placeholder="Contoh: Karyawan Swasta"
           />
         </div>
@@ -1261,12 +1358,20 @@ export default function RegistrationForm() {
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            Foto Formal{' '}
-            <span className="text-red-500">
-              *
-            </span>
-          </label>
+          <div className="mb-4">
+            <label
+              htmlFor="foto"
+              className="mb-2 block text-sm font-semibold text-gray-700"
+            >
+              Foto Gaya Bebas{' '}
+              <span className="text-red-500">*</span>
+            </label>
+
+            {/* Ini adalah Helper Text */}
+            <p className="mt-1 text-xs text-gray-500" id="foto_help">
+              Anda bebas bergaya, namun pastikan wajah terlihat dengan jelas.
+            </p>
+          </div>
 
           {fotoPreview ? (
             <div className="flex items-start gap-4 rounded-xl border border-gray-200 p-4">
@@ -1316,13 +1421,15 @@ export default function RegistrationForm() {
               </p>
 
               <p className="text-xs text-gray-500">
-                JPG, PNG, WEBP · Maksimal 10MB
+                JPG, PNG, WEBP · Maksimal {MAX_FOTO_SIZE_MB}MB
               </p>
 
               <input
                 id="foto"
+                name="foto"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
+                required
                 onChange={
                   handleFotoChange
                 }

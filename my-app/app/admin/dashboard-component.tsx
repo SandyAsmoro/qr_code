@@ -798,18 +798,18 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
             {/* Profile Header */}
             <div className="flex flex-col items-center text-center">
               {/* Foto peserta */}
-              <div className="relative h-40 w-28 overflow-hidden rounded-2xl bg-gray-100 shadow-sm ring-1 ring-gray-200 sm:h-48 sm:w-32">
+              <div className="relative h-60 w-48 overflow-hidden rounded-2xl bg-gray-100 shadow-sm ring-1 ring-gray-200">
                 {selectedParticipant.foto_formal_url ? (
                   <Image
                     src={selectedParticipant.foto_formal_url}
                     alt={`Foto formal ${selectedParticipant.nama_lengkap}`}
                     fill
-                    sizes="128px"
+                    sizes="192px"
                     className="object-cover"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center">
-                    <User className="h-12 w-12 text-gray-400" />
+                    <User className="h-16 w-16 text-gray-400" />
                   </div>
                 )}
               </div>
@@ -951,8 +951,8 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
         >
           <div
             className={`flex items-start gap-3 rounded-xl border p-4 shadow-lg ${notice.type === 'error'
-                ? 'border-red-200 bg-red-50 text-red-700'
-                : 'border-green-200 bg-green-50 text-green-700'
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-green-200 bg-green-50 text-green-700'
               }`}
           >
             {notice.type === 'error' ? (
