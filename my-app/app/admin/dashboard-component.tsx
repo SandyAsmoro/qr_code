@@ -729,7 +729,7 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
 
                           <td className="p-3">
                             <p className="text-gray-700">{p.kelompok || '-'}</p>
-                            {p.dapukan && <p className="text-xs text-gray-500">{p.dapukan}</p>}
+                           
                           </td>
 
                           <td className="p-3">
