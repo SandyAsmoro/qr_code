@@ -199,10 +199,13 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
     [participants]
   )
 
-  const activeFilterCount =
-    [filterDaerah, filterDesa, filterKelompok, filterJenisKelamin, filterAttendance].filter(
-      Boolean
-    ).length
+  const activeFilterCount = [
+    filterDaerah,
+    filterDesa,
+    filterKelompok,
+    filterJenisKelamin,
+    filterAttendance,
+  ].filter(Boolean).length
 
   const hasActiveFilters = activeFilterCount > 0 || search.trim() !== ''
 
@@ -292,8 +295,8 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
 
   const handleDelete = async () => {
     if (!deleteTarget) return
-    setDeleting(true)
 
+    setDeleting(true)
     try {
       const response = await fetch('/api/admin/participants', {
         method: 'DELETE',
@@ -361,29 +364,30 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
   // ---------------------------------------------------------------
   const detailItems = selectedParticipant
     ? [
-      { icon: User, label: 'Jenis Kelamin', value: selectedParticipant.jenis_kelamin || '-' },
-      { icon: Users2, label: 'Umur', value: `${selectedParticipant.umur ?? '-'} tahun` },
-      { icon: MapPin, label: 'Daerah', value: selectedParticipant.daerah || '-' },
-      { icon: MapPin, label: 'Desa', value: selectedParticipant.desa || '-' },
-      { icon: Users2, label: 'Kelompok', value: selectedParticipant.kelompok || '-' },
-      { icon: Users2, label: 'Dapukan', value: selectedParticipant.dapukan || '-' },
-      { icon: Users2, label: 'Status', value: selectedParticipant.status || '-' },
-      {
-        icon: GraduationCap,
-        label: 'Pendidikan',
-        value: selectedParticipant.pendidikan_terakhir || '-',
-      },
-      { icon: Briefcase, label: 'Pekerjaan', value: selectedParticipant.pekerjaan || '-' },
-      { icon: Heart, label: 'Hobi', value: selectedParticipant.hobi || '-' },
-      {
-        icon: Ruler,
-        label: 'Tinggi / Berat',
-        value: `${selectedParticipant.tinggi_badan ?? '-'} cm / ${selectedParticipant.berat_badan ?? '-'
+        { icon: User, label: 'Jenis Kelamin', value: selectedParticipant.jenis_kelamin || '-' },
+        { icon: Users2, label: 'Umur', value: `${selectedParticipant.umur ?? '-'} tahun` },
+        { icon: MapPin, label: 'Daerah', value: selectedParticipant.daerah || '-' },
+        { icon: MapPin, label: 'Desa', value: selectedParticipant.desa || '-' },
+        { icon: Users2, label: 'Kelompok', value: selectedParticipant.kelompok || '-' },
+        { icon: Users2, label: 'Dapukan', value: selectedParticipant.dapukan || '-' },
+        { icon: Users2, label: 'Status', value: selectedParticipant.status || '-' },
+        {
+          icon: GraduationCap,
+          label: 'Pendidikan',
+          value: selectedParticipant.pendidikan_terakhir || '-',
+        },
+        { icon: Briefcase, label: 'Pekerjaan', value: selectedParticipant.pekerjaan || '-' },
+        { icon: Heart, label: 'Hobi', value: selectedParticipant.hobi || '-' },
+        {
+          icon: Ruler,
+          label: 'Tinggi / Berat',
+          value: `${selectedParticipant.tinggi_badan ?? '-'} cm / ${
+            selectedParticipant.berat_badan ?? '-'
           } kg`,
-      },
-      { icon: Users2, label: 'Jumlah Saudara', value: selectedParticipant.jumlah_saudara ?? '-' },
-      { icon: User, label: 'Anak Ke', value: selectedParticipant.anak_ke ?? '-' },
-    ]
+        },
+        { icon: Users2, label: 'Jumlah Saudara', value: selectedParticipant.jumlah_saudara ?? '-' },
+        { icon: User, label: 'Anak Ke', value: selectedParticipant.anak_ke ?? '-' },
+      ]
     : []
 
   // ---------------------------------------------------------------
@@ -399,7 +403,11 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
             <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
               {role === 'admin' ? 'Admin Dashboard' : 'Panitia Dashboard'}
             </h1>
-            <p className="mt-1 text-sm text-gray-600">{role === 'admin' ? 'Kelola data peserta, presensi & kartu ID' : 'Lihat data peserta, cari, filter, detail & scan'}</p>
+            <p className="mt-1 text-sm text-gray-600">
+              {role === 'admin'
+                ? 'Kelola data peserta, presensi & kartu ID'
+                : 'Lihat data peserta, cari, filter, detail & scan'}
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -413,7 +421,9 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
             <Button
               variant="secondary"
               icon={<ClipboardCheck className="h-4 w-4" />}
-              onClick={() => router.push(role === 'admin' ? '/scan-attendance' : '/panitia/scan-attendance')}
+              onClick={() =>
+                router.push(role === 'admin' ? '/scan-attendance' : '/panitia/scan-attendance')
+              }
             >
               Scan Presensi
             </Button>
@@ -514,6 +524,7 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
                       </span>
                     )}
                   </Button>
+
                   {hasActiveFilters && (
                     <Button
                       variant="secondary"
@@ -629,23 +640,25 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
             </Card>
 
             {/* Bulk Download Kartu ID — Admin only */}
-            {role === 'admin' && <Card>
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Kartu ID Peserta</h2>
-                  <p className="mt-1 text-sm text-gray-600">
-                    Download kartu ID untuk peserta yang sedang ditampilkan berdasarkan filter.
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {filteredParticipants.length} peserta ditampilkan · {participantsWithQr.length}{' '}
-                    memiliki QR Code
-                  </p>
-                </div>
+            {role === 'admin' && (
+              <Card>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Kartu ID Peserta</h2>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Download kartu ID untuk peserta yang sedang ditampilkan berdasarkan filter.
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {filteredParticipants.length} peserta ditampilkan · {participantsWithQr.length}{' '}
+                      memiliki QR Code
+                    </p>
+                  </div>
 
-                {/* Penting: gunakan filteredParticipants, bukan participants */}
-                <BulkIdCardDownload participants={filteredParticipants} />
-              </div>
-            </Card>}
+                  {/* Penting: gunakan filteredParticipants, bukan participants */}
+                  <BulkIdCardDownload participants={filteredParticipants} />
+                </div>
+              </Card>
+            )}
 
             {/* Table / Empty States */}
             {participants.length === 0 ? (
@@ -687,14 +700,17 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
                         <th className="p-3 font-semibold text-gray-700">Gender</th>
                         <th className="p-3 font-semibold text-gray-700">Kehadiran</th>
                         <th className="p-3 font-semibold text-gray-700">QR</th>
-                        <th className="p-3 text-right font-semibold text-gray-700">Aksi</th>
+                        <th className="sticky right-0 z-10 bg-gray-50 p-3 text-right font-semibold text-gray-700 shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.15)]">
+                          Aksi
+                        </th>
                       </tr>
                     </thead>
+
                     <tbody>
                       {filteredParticipants.map((p) => (
                         <tr
                           key={p.id}
-                          className="border-t border-gray-200 transition-colors hover:bg-gray-50"
+                          className="group border-t border-gray-200 transition-colors hover:bg-gray-50"
                         >
                           <td className="p-3">
                             <div className="flex items-center gap-3">
@@ -729,7 +745,6 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
 
                           <td className="p-3">
                             <p className="text-gray-700">{p.kelompok || '-'}</p>
-                           
                           </td>
 
                           <td className="p-3">
@@ -753,7 +768,7 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
                             )}
                           </td>
 
-                          <td className="p-3">
+                          <td className="sticky right-0 z-10 bg-white p-3 shadow-[-6px_0_8px_-6px_rgba(0,0,0,0.15)] transition-colors group-hover:bg-gray-50">
                             <div className="flex justify-end gap-1">
                               <button
                                 type="button"
@@ -794,7 +809,6 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
       >
         {selectedParticipant && (
           <div className="space-y-5">
-            {/* Header */}
             {/* Profile Header */}
             <div className="flex flex-col items-center text-center">
               {/* Foto peserta */}
@@ -827,13 +841,9 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
               {/* Attendance */}
               <div className="mt-3">
                 {hasAttended(selectedParticipant) ? (
-                  <Badge variant="success">
-                    Sudah Hadir
-                  </Badge>
+                  <Badge variant="success">Sudah Hadir</Badge>
                 ) : (
-                  <Badge variant="warning">
-                    Belum Hadir
-                  </Badge>
+                  <Badge variant="warning">Belum Hadir</Badge>
                 )}
               </div>
             </div>
@@ -930,18 +940,20 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
       </Modal>
 
       {/* Delete Confirmation — Admin only */}
-      {role === 'admin' && <ConfirmDialog
-        isOpen={!!deleteTarget}
-        title="Hapus Data Peserta?"
-        description={
-          deleteTarget
-            ? `Data "${deleteTarget.nama_lengkap}" akan dihapus permanen dan tidak dapat dikembalikan.`
-            : ''
-        }
-        loading={deleting}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />}
+      {role === 'admin' && (
+        <ConfirmDialog
+          isOpen={!!deleteTarget}
+          title="Hapus Data Peserta?"
+          description={
+            deleteTarget
+              ? `Data "${deleteTarget.nama_lengkap}" akan dihapus permanen dan tidak dapat dikembalikan.`
+              : ''
+          }
+          loading={deleting}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
 
       {/* Toast */}
       {notice && (
@@ -950,10 +962,11 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
           className="fixed inset-x-4 bottom-4 z-[60] sm:inset-x-auto sm:right-6 sm:w-96"
         >
           <div
-            className={`flex items-start gap-3 rounded-xl border p-4 shadow-lg ${notice.type === 'error'
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'border-green-200 bg-green-50 text-green-700'
-              }`}
+            className={`flex items-start gap-3 rounded-xl border p-4 shadow-lg ${
+              notice.type === 'error'
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : 'border-green-200 bg-green-50 text-green-700'
+            }`}
           >
             {notice.type === 'error' ? (
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
