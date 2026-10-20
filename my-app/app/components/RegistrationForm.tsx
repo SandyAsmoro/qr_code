@@ -1180,7 +1180,7 @@ export default function RegistrationForm() {
           <Input
             id="desa"
             name="desa"
-            label="Desa"
+            label="Desa Sambung"
             required
             value={formData.desa}
             onChange={handleChange}
@@ -1191,7 +1191,7 @@ export default function RegistrationForm() {
           <Input
             id="kelompok"
             name="kelompok"
-            label="Kelompok"
+            label="Kelompok Sambung"
             required
             value={formData.kelompok}
             onChange={handleChange}
