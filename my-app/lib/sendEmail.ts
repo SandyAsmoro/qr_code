@@ -23,7 +23,7 @@ export async function sendQRCodeEmail(
       margin: 0 auto;
     ">
       <h2 style="color: #2563eb;">
-        Registrasi Berhasil ✓
+        Selamat Registrasi Berhasil ✓
       </h2>
 
       <p>
