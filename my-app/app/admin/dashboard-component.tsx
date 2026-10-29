@@ -43,6 +43,8 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import IdCard from '@/components/IdCard'
 import BulkIdCardDownload from '@/components/BulkIdCardDownload'
 import ExportWithPhotosButton from '@/components/ExportWithPhotosButton'
+import ParticipantDataCard from '@/components/ParticipantDataCard'
+import BulkDataCardDownload from '@/components/BulkDataCardDownload'
 
 type Participant = {
   id: string
@@ -108,11 +110,13 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
   const [deleteTarget, setDeleteTarget] = useState<Participant | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [downloadingCard, setDownloadingCard] = useState(false)
+  const [downloadingDataCard, setDownloadingDataCard] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
 
   const idCardRef = useRef<HTMLDivElement>(null)
+  const dataCardRef = useRef<HTMLDivElement>(null)
 
   // Toast otomatis hilang
   useEffect(() => {
@@ -338,6 +342,23 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
       setNotice({ type: 'error', message: 'Gagal mengunduh kartu peserta.' })
     } finally {
       setDownloadingCard(false)
+    }
+  }
+
+  const handleDownloadDataCard = async () => {
+    if (!dataCardRef.current || !selectedParticipant) return
+
+    setDownloadingDataCard(true)
+    try {
+      await downloadCardAsImage(
+        dataCardRef.current,
+        `kartu-data-${selectedParticipant.participant_code}`
+      )
+    } catch (error) {
+      console.error('Gagal mengunduh kartu data:', error)
+      setNotice({ type: 'error', message: 'Gagal mengunduh kartu data peserta.' })
+    } finally {
+      setDownloadingDataCard(false)
     }
   }
 
@@ -683,6 +704,28 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
               </Card>
             )}
 
+            {/* Bulk Download Kartu Data + Foto — Admin only */}
+            {role === 'admin' && (
+              <Card>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Kartu Data Peserta
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Download kartu berisi foto dan data diri untuk peserta yang sedang
+                      ditampilkan berdasarkan filter.
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {filteredParticipants.length} peserta ditampilkan
+                    </p>
+                  </div>
+
+                  <BulkDataCardDownload participants={filteredParticipants} />
+                </div>
+              </Card>
+            )}
+
             {/* Table / Empty States */}
             {participants.length === 0 ? (
               <Card>
@@ -932,6 +975,25 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
                   qrCodeUrl={selectedParticipant.qr_code_url}
                   daerah={selectedParticipant.daerah}
                 />
+              </div>
+            )}
+
+            {/* Kartu Data (foto + data diri) — Admin only */}
+            {role === 'admin' && (
+              <div className="flex flex-col items-center rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <p className="mb-3 text-sm font-medium text-gray-700">Preview Kartu Data</p>
+                <div className="w-full overflow-x-auto">
+                  <ParticipantDataCard ref={dataCardRef} participant={selectedParticipant} />
+                </div>
+                <Button
+                  variant="secondary"
+                  className="mt-4 w-full sm:w-auto"
+                  icon={<Download className="h-4 w-4" />}
+                  loading={downloadingDataCard}
+                  onClick={handleDownloadDataCard}
+                >
+                  Download Kartu Data
+                </Button>
               </div>
             )}
 

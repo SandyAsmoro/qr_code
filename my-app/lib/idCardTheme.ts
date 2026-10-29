@@ -7,12 +7,28 @@
 
 export type RegionTheme = {
   background: string
+  /** Warna aksen (header, label) untuk Kartu Data Peserta. */
+  accent: string
+  /** Versi sangat muda dari aksen (latar badge). */
+  accentSoft: string
 }
 
 export const REGION_THEMES: Record<string, RegionTheme> = {
-  'Kediri Selatan 1': { background: '/id-card/background-green.webp' },
-  'Kediri Barat': { background: '/id-card/background-red.webp' },
-  'Kediri Kota': { background: '/id-card/background-blue.webp' },
+  'Kediri Selatan 1': {
+    background: '/id-card/background-green.webp',
+    accent: '#15803d',
+    accentSoft: '#f0fdf4',
+  },
+  'Kediri Barat': {
+    background: '/id-card/background-red.webp',
+    accent: '#b91c1c',
+    accentSoft: '#fef2f2',
+  },
+  'Kediri Kota': {
+    background: '/id-card/background-blue.webp',
+    accent: '#1d4ed8',
+    accentSoft: '#eff6ff',
+  },
   // 'Kediri Selatan 1': { background: '/id-card/background-green.png' },
   // 'Kediri Barat': { background: '/id-card/background-red.png' },
   // 'Kediri Kota': { background: '/id-card/background-blue.png' },
