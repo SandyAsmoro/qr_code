@@ -13,7 +13,7 @@ export type CardDownloadItem = {
 /**
  * Struktur file ZIP sederhana.
  */
-type ZipFile = {
+export type ZipFile = {
   name: string
   data: Uint8Array
 }
@@ -236,7 +236,7 @@ const UTF8_FLAG = 0x0800
  * Membuat ZIP sederhana (tanpa kompresi / STORE)
  * tanpa dependency tambahan.
  */
-const createZip = (files: ZipFile[]): Blob => {
+export const createZip = (files: ZipFile[]): Blob => {
   const localParts: Uint8Array[] = []
   const centralParts: Uint8Array[] = []
 

@@ -42,6 +42,7 @@ import Modal from '@/components/ui/Modal'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import IdCard from '@/components/IdCard'
 import BulkIdCardDownload from '@/components/BulkIdCardDownload'
+import ExportWithPhotosButton from '@/components/ExportWithPhotosButton'
 
 type Participant = {
   id: string
@@ -634,6 +635,28 @@ export default function DashboardComponent({ role = 'admin' }: { role?: 'admin' 
                     >
                       Export CSV
                     </Button>
+                    <ExportWithPhotosButton
+                      participants={filteredParticipants}
+                      disabled={exporting}
+                      onSuccess={(result) => {
+                        const problems = result.photosFailed.length + result.photosMissing
+                        setNotice({
+                          type: problems > 0 ? 'error' : 'success',
+                          message:
+                            problems > 0
+                              ? `ZIP diunduh. ${result.photosDownloaded}/${result.total} foto berhasil` +
+                                (result.photosFailed.length > 0
+                                  ? `, ${result.photosFailed.length} gagal diunduh`
+                                  : '') +
+                                (result.photosMissing > 0
+                                  ? `, ${result.photosMissing} peserta tanpa foto`
+                                  : '') +
+                                '.'
+                              : `Data dan ${result.photosDownloaded} foto berhasil diunduh.`,
+                        })
+                      }}
+                      onError={(message) => setNotice({ type: 'error', message })}
+                    />
                   </div>
                 )}
               </div>
